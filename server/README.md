@@ -1,22 +1,22 @@
-# Local bridge
+# Local bridge (speaker control) — currently out of scope
 
-A small local Node service, meant to run on Kevin's PC for now and move to a Raspberry Pi later.
-It does two things:
+A small local Node service, meant to run on a PC or Raspberry Pi, that discovers and controls
+Google Home / Chromecast-enabled speakers on the LAN and exposes them as plain HTTP for the
+tablet's browser to call.
 
-1. **Speaker control** — discovers and controls Google Home / Chromecast-enabled speakers on the
-   LAN, exposed as plain HTTP for the tablet's browser to call.
-2. **Markets proxy** (optional) — re-serves FMP quotes with the API key held here (an environment
-   variable) instead of in the publicly-served `config.js`.
+**Status: not part of the current build.** Kevin's decision, September 2026: keep Maison Panel to
+just the deployed URL, with no second machine to babysit. Every other tile is already pure
+client-side (static HTML/CSS/JS calling public APIs directly); speaker control is the one feature
+that structurally cannot work that way — a browser cannot do Cast-protocol device discovery
+(mDNS) or hold the raw socket connection a Cast session needs, so it needs a real always-on
+process somewhere on the LAN. That requirement is exactly what's being avoided right now, so this
+code stays in the repo, unused, rather than wired in. `js/speakers.js` and `config.js` →
+`speakers.enabled` are both still present and both still default to off.
 
-**Why speaker control needs this at all:** a browser genuinely cannot do it itself. Controlling a
-Cast device needs local network device discovery (mDNS) and a raw socket protocol — there's no
-CORS-friendly public API for it. That's the one piece of Maison Panel that needs a real always-on
-process somewhere on the LAN, which is why it lives here instead of in `/js` with everything else.
-
-**Why markets is here too:** a server-to-server call has no CORS restriction and, more importantly,
-never exposes the key to the browser at all — `view-source` on the deployed page can't see a key
-that was never sent to it in the first place. This is optional; markets keeps working exactly as
-it does today (direct client-side fetch) until `config.js` → `markets.bridgeUrl` is set.
+If speaker control is wanted again later, this is a working starting point — see **Known
+limitation** below for what to verify against real hardware before trusting it. Markets does
+**not** route through here; it fetches Financial Modeling Prep directly from the browser (see
+`js/markets.js`) and has no server dependency at all.
 
 ## Setup
 
@@ -51,19 +51,12 @@ curl http://localhost:8787/api/speakers
 
 1. Find this machine's LAN IP address (not `localhost` — the tablet needs to reach it over
    Wi-Fi): `ipconfig` on Windows, `ip addr` or `hostname -I` on Linux/Raspberry Pi OS.
-2. In the repo's `config.js`, for speakers:
+2. In the repo's `config.js`:
    ```js
    speakers: {
      enabled: true,
      bridgeUrl: "http://192.168.1.50:8787", // this machine's IP and the port above
      refresh: 10 * 1000,
-   },
-   ```
-   And, if you also want markets routed through here (see **Markets proxy setup** below):
-   ```js
-   markets: {
-     bridgeUrl: "http://192.168.1.50:8787", // same address as speakers.bridgeUrl
-     // fmpKey stops being read once bridgeUrl is set — safe to remove it from config.js at that point
    },
    ```
 3. Push that change — Cloudflare redeploys the panel automatically.
@@ -72,32 +65,15 @@ curl http://localhost:8787/api/speakers
    `https://`, but this bridge is plain `http://` on the LAN — browsers block that combination by
    default, same as the camera tile in the brief. This is a one-time setting, not a code fix.
 
-## Markets proxy setup
-
-Set `FMP_KEY` in the environment before starting the bridge — it's never read from `config.js` or
-committed anywhere:
-
-```
-# macOS/Linux
-FMP_KEY=your-fmp-key npm start
-
-# Windows (PowerShell)
-$env:FMP_KEY="your-fmp-key"; npm start
-```
-
-Without `FMP_KEY` set, `/api/markets` responds `503` and the panel just keeps using its existing
-direct-to-FMP path — nothing breaks by leaving this unconfigured.
-
 ## Keeping it running
 
-For now, on the PC, just leave the terminal window open (or run `npm start` again after a reboot).
-Once this moves to a Raspberry Pi, run it as a real background service so it survives reboots —
-e.g. a systemd unit:
+Just leave the terminal window open on the PC (or run `npm start` again after a reboot). On a
+Raspberry Pi, run it as a real background service so it survives reboots — e.g. a systemd unit:
 
 ```ini
 # /etc/systemd/system/maison-bridge.service
 [Unit]
-Description=Maison Panel local bridge
+Description=Maison Panel speaker bridge
 After=network-online.target
 
 [Service]
@@ -105,8 +81,6 @@ WorkingDirectory=/home/pi/Maison-Panel/server
 ExecStart=/usr/bin/node index.js
 Restart=on-failure
 User=pi
-Environment=FMP_KEY=your-fmp-key
-# ^ only needed if markets is routed through the bridge — omit otherwise
 
 [Install]
 WantedBy=multi-user.target
@@ -126,7 +100,6 @@ All responses are JSON. No auth — this is a LAN-only tool with nothing secret 
 | `/api/speakers/:id/resume` | POST | — | resume/unpause |
 | `/api/speakers/:id/stop` | POST | — | stop |
 | `/api/speakers/:id/volume` | POST | `{ "level": 0.0-1.0 }` | set volume |
-| `/api/markets?symbols=SPY,QQQ` | GET | — | FMP batch quotes; `503` if `FMP_KEY` isn't set |
 
 A speaker's `:id` is a slug of its name (e.g. "Living Room speaker" → `living-room-speaker`) —
 check `/api/speakers` to see the exact ids for your devices.

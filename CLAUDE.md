@@ -14,16 +14,16 @@ Cloudflare Pages. The tablet's browser calls every external API directly; there 
 See `docs/project-brief.md` for the full brief this build follows (architecture rationale, tile specs,
 resilience requirements, design direction, and the phased build order).
 
-**One deliberate exception:** `/server` is a small local Node process (the "local bridge") that
-discovers and controls Google Home / Chromecast speakers over the LAN — a browser genuinely cannot
-do Cast-protocol device discovery itself, there's no API for it. It runs on Kevin's PC today, a
-Raspberry Pi eventually, and the panel talks to it exactly like the camera tile talks to a LAN
-camera: plain HTTP, LAN-only, fails independently, stays quiet if unreachable or unconfigured. See
-`server/README.md`. It also optionally proxies markets (`/api/markets`, holding the FMP key as a
-server-side env var instead of in the publicly-served `config.js`) — off by default
-(`config.markets.bridgeUrl` empty), markets keeps working exactly as it does today until that's
-set. Nothing else in this repo gets this exception — every other tile stays client-side-only
-against a public API or local math.
+**`/server` exists but is currently out of scope.** It's a small local Node process (the "speaker
+bridge") that discovers and controls Google Home / Chromecast speakers over the LAN — a browser
+genuinely cannot do Cast-protocol device discovery itself, there's no API for it. It's the one
+feature that would need a real always-on process on a PC or Raspberry Pi, which is exactly what
+Kevin decided (September 2026) to avoid: the project stays a pure static site with no second
+machine to run or maintain. The code is left in the repo (`js/speakers.js`, `server/`) but
+`config.js` → `speakers.enabled` stays `false` and nothing wires it in. See `server/README.md`.
+Markets does **not** use `/server` — it fetches FMP directly from the browser (see below). Nothing
+else in this repo gets a server exception — every tile is client-side-only against a public API or
+local math.
 
 There are no lint, build, or test commands. Changes are validated by opening `index.html` (a local
 static server is enough — see below) and, ultimately, by the deployed Pages URL on the actual tablet.
@@ -52,8 +52,10 @@ and service workers, so always serve it over `http(s)`.
         ├──► api.open-meteo.com          (weather, no key, CORS: *)
         ├──► financialmodelingprep.com   (markets, key in query string, CORS enabled)
         ├──► googleapis.com/calendar     (calendar, browser API key)
-        ├──► http://<camera-lan-ip>      (camera snapshots, LAN only, phase 5)
-        └──► http://<pc-or-pi-ip>:8787   (local bridge: speakers, optionally markets — see /server)
+        └──► http://<camera-lan-ip>      (camera snapshots, LAN only, phase 5)
+
+  (speaker control — js/speakers.js + /server — exists in the repo but is currently out of scope;
+   see server/README.md. Not part of the deployed panel.)
 ```
 
 Fishing/solunar times are pure client-side astronomy math (vendored SunCalc) — zero network calls.
@@ -71,12 +73,12 @@ js/
   weather.js          Open-Meteo tile (current/hourly/daily)
   solunar.js          fishing/solunar tile (phase 2, built on vendor/suncalc.js)
   calendar.js         Google Calendar tile (phase 3)
-  markets.js          FMP (Financial Modeling Prep) markets strip (phase 4)
+  markets.js          FMP (Financial Modeling Prep) markets strip (phase 4) — direct client-side fetch, no server
   camera.js           camera snapshot tile — config-driven feeds, tap-to-enlarge (phase 5)
-  speakers.js         Google Home / Chromecast speaker tile — talks to /server, not the devices
+  speakers.js         Google Home / Chromecast speaker tile — talks to /server; currently unused, speakers.enabled: false
 vendor/suncalc.js     vendored SunCalc (MIT/BSD-2-Clause) — not loaded from a CDN
 fonts/                self-hosted Archivo + Public Sans (see fonts/README.md)
-server/               local bridge (speakers + optional markets proxy) — the one real Node process in this repo (see server/README.md)
+server/               speaker bridge — currently out of scope, not part of the deployed panel (see server/README.md)
 ```
 
 ## Key implementation rules (from the brief — do not relax these)
@@ -93,8 +95,13 @@ server/               local bridge (speakers + optional markets proxy) — the o
 - **Type scale has a floor of 18px** — nothing smaller belongs on a panel read from across a room.
 - **Solunar amber (`--solunar`) is reserved exclusively** for an active fishing period — it must not
   appear anywhere else on the panel.
-- Repo stays **private**: camera URLs/credentials and the speaker bridge's LAN address belong only
-  in `config.js`, never committed elsewhere.
+- **Markets fetches FMP one symbol at a time, sequentially** (`/stable/quote`, not `/stable/batch-quote`
+  — that endpoint is paid-plan-only and returns "Restricted Endpoint" on the free tier this project
+  uses). Firing all requests in parallel previously left only one symbol rendering, likely a
+  free-tier burst/concurrency limit — sequential avoids it and costs nothing meaningful for a tile
+  refreshed every 15 minutes.
+- Repo stays **private**: camera URLs/credentials belong only in `config.js`, never committed
+  elsewhere.
 
 ## Visual design — supersedes brief §8 on one point
 
@@ -118,6 +125,6 @@ its own before later phases add solunar, calendar, markets, and camera tiles. Se
 visibility, exact coordinates) that block phases 3+.
 
 Speaker control (`js/speakers.js` + `/server`) was added after the original brief, at Kevin's
-request — it isn't in the `docs/project-brief.md` phase table. It follows the same rules as
-everything else here (independent failure, quiet when unconfigured) and is documented in
-`server/README.md` rather than the brief.
+request, then put on hold (September 2026, see above) in favor of keeping the project a pure
+static site with no second machine. It isn't in the `docs/project-brief.md` phase table, and its
+code is documented in `server/README.md` rather than the brief.

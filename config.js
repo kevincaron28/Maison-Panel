@@ -10,18 +10,13 @@ export const CONFIG = {
   refresh: {
     weather: 15 * 60 * 1000,
     calendar: 10 * 60 * 1000,
-    markets: 15 * 60 * 1000, // free FMP is end-of-day, not live; tighten this once markets route through the bridge
+    markets: 15 * 60 * 1000, // free FMP is end-of-day, not live — this is as tight as it's worth polling
     solunar: 5 * 60 * 1000, // cheap, it's local math
     camera: 2 * 1000,
   },
 
   markets: {
-    fmpKey: "74x4tq9TNGGBWIzhgEae7rHWHw6RPffq", // only used when bridgeUrl below is empty
-    // Once the PC/Pi bridge (see /server) is running with FMP_KEY set in its environment, put its
-    // address here (same one speakers.bridgeUrl uses) to fetch markets through it instead — the
-    // key then lives only on the bridge, never shipped in this file. Leave blank to keep today's
-    // behavior (direct client-side fetch using fmpKey above).
-    bridgeUrl: "",
+    fmpKey: "74x4tq9TNGGBWIzhgEae7rHWHw6RPffq", // direct client-side fetch, one symbol at a time — no server involved
     marketHours: { startHourEt: 9, startMinuteEt: 30, endHourEt: 16 },
     symbols: [
       { sym: "SPY", label: "S&P 500" },
