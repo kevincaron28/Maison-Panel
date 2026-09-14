@@ -14,16 +14,12 @@ Cloudflare Pages. The tablet's browser calls every external API directly; there 
 See `docs/project-brief.md` for the full brief this build follows (architecture rationale, tile specs,
 resilience requirements, design direction, and the phased build order).
 
-**`/server` exists but is currently out of scope.** It's a small local Node process (the "speaker
-bridge") that discovers and controls Google Home / Chromecast speakers over the LAN — a browser
-genuinely cannot do Cast-protocol device discovery itself, there's no API for it. It's the one
-feature that would need a real always-on process on a PC or Raspberry Pi, which is exactly what
-Kevin decided (September 2026) to avoid: the project stays a pure static site with no second
-machine to run or maintain. The code is left in the repo (`js/speakers.js`, `server/`) but
-`config.js` → `speakers.enabled` stays `false` and nothing wires it in. See `server/README.md`.
-Markets does **not** use `/server` — it fetches FMP directly from the browser (see below). Nothing
-else in this repo gets a server exception — every tile is client-side-only against a public API or
-local math.
+**No exceptions.** Every tile is client-side-only against a public API or local math — there is no
+`/server`, no LAN process, no second machine anywhere in this project. (Google Home speaker control
+was built and then removed, September 2026, per Kevin's decision to keep this to just the deployed
+URL — see git history if that code is ever wanted again. If media control comes back, the plan is
+Spotify Connect via the Spotify Web API with OAuth Authorization Code + PKCE — unlike Chromecast's
+mDNS device discovery, that's a cloud API call the browser can make directly, no server needed.)
 
 There are no lint, build, or test commands. Changes are validated by opening `index.html` (a local
 static server is enough — see below) and, ultimately, by the deployed Pages URL on the actual tablet.
@@ -53,9 +49,6 @@ and service workers, so always serve it over `http(s)`.
         ├──► financialmodelingprep.com   (markets, key in query string, CORS enabled)
         ├──► googleapis.com/calendar     (calendar, browser API key)
         └──► http://<camera-lan-ip>      (camera snapshots, LAN only, phase 5)
-
-  (speaker control — js/speakers.js + /server — exists in the repo but is currently out of scope;
-   see server/README.md. Not part of the deployed panel.)
 ```
 
 Fishing/solunar times are pure client-side astronomy math (vendored SunCalc) — zero network calls.
@@ -75,10 +68,8 @@ js/
   calendar.js         Google Calendar tile (phase 3)
   markets.js          FMP (Financial Modeling Prep) markets strip (phase 4) — direct client-side fetch, no server
   camera.js           camera snapshot tile — config-driven feeds, tap-to-enlarge (phase 5)
-  speakers.js         Google Home / Chromecast speaker tile — talks to /server; currently unused, speakers.enabled: false
 vendor/suncalc.js     vendored SunCalc (MIT/BSD-2-Clause) — not loaded from a CDN
 fonts/                self-hosted Archivo + Public Sans (see fonts/README.md)
-server/               speaker bridge — currently out of scope, not part of the deployed panel (see server/README.md)
 ```
 
 ## Key implementation rules (from the brief — do not relax these)
@@ -111,11 +102,11 @@ now follows a broader improvement plan (audited and being worked through in smal
 touch targets, markets robustness, and this) that calls for a "premium smart-home panel" look —
 cards with a subtle border and consistent radius, consistent spacing, restrained (no heavy shadow).
 Every top-level tile (`#tile-weather`, `#tile-calendar`, `#tile-solunar`, `#tile-markets`,
-`#tile-speakers`, `#tile-cameras`) shares that treatment in `css/panel.css`. Everything else from
-§8 still holds: large numbers for primary readouts, small muted secondary text, no shadow beyond
-the card border itself, solunar amber still reserved exclusively for an active period, type floor
-still 18px for anything meant to be read as a primary value (secondary/status labels like
-`.market-label` or `.speaker-status` sit a bit under that, matching existing precedent).
+`#tile-cameras`) shares that treatment in `css/panel.css`. Everything else from §8 still holds:
+large numbers for primary readouts, small muted secondary text, no shadow beyond the card border
+itself, solunar amber still reserved exclusively for an active period, type floor still 18px for
+anything meant to be read as a primary value (secondary/status labels like `.market-label` sit a
+bit under that, matching existing precedent).
 
 ## Build order
 
@@ -124,7 +115,6 @@ its own before later phases add solunar, calendar, markets, and camera tiles. Se
 §9 for the full phase table and §11 for open questions (tablet model, camera brand, locale, calendar
 visibility, exact coordinates) that block phases 3+.
 
-Speaker control (`js/speakers.js` + `/server`) was added after the original brief, at Kevin's
-request, then put on hold (September 2026, see above) in favor of keeping the project a pure
-static site with no second machine. It isn't in the `docs/project-brief.md` phase table, and its
-code is documented in `server/README.md` rather than the brief.
+Google Home speaker control was added after the original brief, at Kevin's request, then removed
+(September 2026, see above) in favor of keeping the project a pure static site with no second
+machine. It was never part of the `docs/project-brief.md` phase table.

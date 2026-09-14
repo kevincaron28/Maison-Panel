@@ -4,7 +4,6 @@ import { initWeather } from "./weather.js";
 import { initSolunar } from "./solunar.js";
 import { initMarkets } from "./markets.js";
 import { initCalendar } from "./calendar.js";
-import { initSpeakers } from "./speakers.js";
 import { initCamera } from "./camera.js";
 
 function safeInit(name, fn) {
@@ -66,16 +65,14 @@ function main() {
   safeInit("solunar", () => initSolunar(CONFIG, document.getElementById("tile-solunar")));
   safeInit("markets", () => initMarkets(CONFIG, document.getElementById("tile-markets")));
   safeInit("calendar", () => initCalendar(CONFIG, document.getElementById("tile-calendar")));
-  safeInit("speakers", () => initSpeakers(CONFIG, document.getElementById("tile-speakers")));
   safeInit("camera", () => initCamera(CONFIG, document.getElementById("tile-cameras")));
   safeInit("offline indicator", setupOfflineIndicator);
   safeInit("night mode", () => setupNightMode(CONFIG));
   safeInit("burn-in shift", setupBurnInShift);
   safeInit("daily reload", () => setupDailyReload(CONFIG));
 
-  // Camera footer and speakers tile stay hidden until they're actually configured.
+  // Camera footer stays hidden until it's actually configured.
   document.getElementById("tile-cameras").hidden = !(CONFIG.camera?.feeds || []).some((f) => f.enabled);
-  document.getElementById("tile-speakers").hidden = !(CONFIG.speakers.enabled && CONFIG.speakers.bridgeUrl);
 }
 
 main();

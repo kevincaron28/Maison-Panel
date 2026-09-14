@@ -132,31 +132,14 @@ that's the trade-off for keeping it private), the fallback is Path A in `docs/pr
 
 **Markets** — uses Financial Modeling Prep (`config.js` → `markets.fmpKey`, already set), not
 Finnhub — free Finnhub turned out to be delayed/inconsistent in practice despite its marketing, and
-FMP's free tier is honestly the same shape (end-of-day, not live intraday). Nothing more to do here
-for now; genuinely live quotes are planned to route through the speaker bridge (see `/server`) once
-the PC/Pi is set up.
+FMP's free tier is honestly the same shape (end-of-day, not live intraday). It fetches each symbol
+directly from the browser, no server involved. Nothing more to do here.
 
 ## Camera — not yet
 
 Camera hardware hasn't been bought yet, so there's nothing to configure — `config.js` →
 `camera.enabled` stays `false` until it is. See `docs/project-brief.md` §11.2 for what's needed
 once a camera's picked (brand/model decides whether snapshot polling is even possible).
-
-## Speaker control — needs a PC or Raspberry Pi running
-
-This is the one tile that isn't purely "code on Cloudflare" — controlling Google Home speakers
-needs a real always-on helper on your home network (a browser can't do it alone). Full setup is in
-[`server/README.md`](../server/README.md); short version:
-
-1. On a PC (or later a Raspberry Pi) on the same Wi-Fi as the speakers: `cd server && npm install && npm start`.
-2. Put that machine's LAN address into `config.js` → `speakers.bridgeUrl`, and `speakers.enabled: true`.
-3. On the tablet, in Fully Kiosk Browser, turn on **"Allow insecure content"** — the panel is
-   `https://` but this helper is plain `http://` on the LAN, and browsers block mixing the two by
-   default. Same reason the camera tile needs this too.
-
-Unlike the other tiles, this one needs that PC (or Pi) turned on and running `npm start` to work at
-all — if it's off, the speaker tile just quietly disappears, same as everything else here failing
-gracefully.
 
 ## Changing settings later (location, units, etc.)
 

@@ -106,8 +106,7 @@ body {
 #tile-weather,
 #tile-calendar,
 #tile-solunar,
-#tile-markets,
-#tile-speakers {
+#tile-markets {
   background: var(--ground-raised);
   border: 1px solid color-mix(in srgb, var(--ink-mid) 20%, transparent);
   border-radius: 12px;
@@ -266,7 +265,7 @@ body {
 }
 #tile-markets .market-label {
   font-family: var(--font-label);
-  font-size: 15px; /* matches the other secondary/status labels (speaker-status, camera-feed-status) */
+  font-size: 15px; /* matches the other secondary/status labels (camera-feed-status) */
   color: var(--ink-mid);
 }
 #tile-markets .market-values {
@@ -287,69 +286,6 @@ body {
 }
 .market-down {
   color: var(--down);
-}
-
-/* speaker control tile — talks to the local bridge in /server, never directly to the speakers */
-#tile-speakers .speaker-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-#tile-speakers .speaker-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-#tile-speakers .speaker-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: var(--size-body);
-}
-#tile-speakers .speaker-name {
-  color: var(--ink-high);
-}
-#tile-speakers .speaker-status {
-  color: var(--ink-mid);
-  font-size: 15px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-#tile-speakers .speaker-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-#tile-speakers .speaker-btn {
-  background: none;
-  border: 1px solid var(--ink-mid);
-  border-radius: 8px;
-  color: var(--ink-high);
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-}
-#tile-speakers .speaker-btn:active {
-  background: var(--ink-mid);
-}
-#tile-speakers .speaker-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-#tile-speakers .speaker-vol {
-  font-family: var(--font-readout);
-  font-size: 18px;
-}
-#tile-speakers .speaker-volume {
-  font-family: var(--font-readout);
-  font-variant-numeric: tabular-nums;
-  min-width: 3.5ch;
-  text-align: center;
 }
 
 /* footer: camera strip — phase 5 */

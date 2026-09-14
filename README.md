@@ -14,10 +14,8 @@ as a static site (Cloudflare Workers with static assets); the tablet's browser c
 directly (Open-Meteo, FMP, Google Calendar). Solunar/fishing timing is local astronomy math via a
 vendored copy of [SunCalc](https://github.com/mourner/suncalc) — no network call for that tile.
 
-[`/server`](server/README.md) (Google Home speaker control) exists in the repo but is currently
-**not part of the build** — it's the one feature that would need a real always-on LAN process
-(a browser can't do Cast-protocol device discovery), and Kevin's current direction is to keep this
-to just the deployed URL, no second machine. See `server/README.md` for details.
+No server, no second machine, no LAN process of any kind — every tile is client-side-only against
+a public API or local math.
 
 ## Running locally
 
@@ -50,11 +48,6 @@ Phases 1–4 (weather, solunar/fishing, calendar, markets) are built, configured
 Camera (`js/camera.js`) is fully built — snapshot polling, live/offline state, tap-to-enlarge —
 and just needs feeds added to `config.js` → `camera.feeds` once hardware is picked; see
 `docs/project-brief.md` §9 and §11.2.
-
-Speaker control (`js/speakers.js` + [`/server`](server/README.md)) is built but **currently out of
-scope** — it's the one feature that structurally needs a real always-on process on the LAN, and the
-current direction is to keep this project to just the deployed URL, no PC or Raspberry Pi to
-maintain. `config.js` → `speakers.enabled` stays `false`; see `server/README.md` if that changes.
 
 ## Deployment
 
