@@ -106,7 +106,8 @@ body {
 #tile-weather,
 #tile-calendar,
 #tile-solunar,
-#tile-markets {
+#tile-markets,
+#tile-spotify {
   background: var(--ground-raised);
   border: 1px solid color-mix(in srgb, var(--ink-mid) 20%, transparent);
   border-radius: 12px;
@@ -286,6 +287,77 @@ body {
 }
 .market-down {
   color: var(--down);
+}
+
+/* Spotify Connect tile — controls whichever device is active in the account, via Spotify's own
+   cloud Web API (no server, no LAN). */
+#tile-spotify .spotify-connect-btn {
+  background: none;
+  border: 1px solid var(--ink-mid);
+  border-radius: 8px;
+  color: var(--ink-high);
+  font-family: var(--font-label);
+  font-size: var(--size-label);
+  padding: 12px 16px;
+  cursor: pointer;
+}
+#tile-spotify .spotify-idle {
+  color: var(--ink-mid);
+  font-size: 15px; /* matches the other secondary/status labels (.market-label, camera-feed-status) */
+}
+#tile-spotify .spotify-meta {
+  min-width: 0;
+}
+#tile-spotify .spotify-track {
+  color: var(--ink-high);
+  font-size: var(--size-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tile-spotify .spotify-artist {
+  color: var(--ink-mid);
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+#tile-spotify .spotify-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+#tile-spotify .spotify-volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+#tile-spotify .spotify-btn {
+  background: none;
+  border: 1px solid var(--ink-mid);
+  border-radius: 8px;
+  color: var(--ink-high);
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+#tile-spotify .spotify-btn-primary {
+  font-size: 20px;
+}
+#tile-spotify .spotify-btn-small {
+  width: 40px;
+  height: 40px;
+}
+#tile-spotify .spotify-btn:active {
+  background: var(--ink-mid);
 }
 
 /* footer: camera strip — phase 5 */

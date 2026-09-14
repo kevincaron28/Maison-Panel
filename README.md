@@ -15,7 +15,9 @@ directly (Open-Meteo, FMP, Google Calendar). Solunar/fishing timing is local ast
 vendored copy of [SunCalc](https://github.com/mourner/suncalc) — no network call for that tile.
 
 No server, no second machine, no LAN process of any kind — every tile is client-side-only against
-a public API or local math.
+a public API or local math. Music control talks to Spotify Connect (the Spotify Web API), auth'd
+with OAuth Authorization Code + PKCE, which — unlike the Google Home speaker bridge this project
+used to have — is a cloud API call the browser can make directly, no local process required.
 
 ## Running locally
 
@@ -48,6 +50,11 @@ Phases 1–4 (weather, solunar/fishing, calendar, markets) are built, configured
 Camera (`js/camera.js`) is fully built — snapshot polling, live/offline state, tap-to-enlarge —
 and just needs feeds added to `config.js` → `camera.feeds` once hardware is picked; see
 `docs/project-brief.md` §9 and §11.2.
+
+**Spotify** (`js/spotify.js`) controls playback on whichever device is active in Kevin's Spotify
+account — a phone, a computer, or a Spotify Connect–enabled speaker — via the Spotify Web API.
+`config.js` → `spotify.clientId` is set; the one remaining step is a one-time login tap on the
+tablet itself (see `docs/install-guide.md`). Leave `clientId` blank to hide the tile entirely.
 
 ## Deployment
 

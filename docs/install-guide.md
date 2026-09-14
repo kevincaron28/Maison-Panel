@@ -141,6 +141,27 @@ Camera hardware hasn't been bought yet, so there's nothing to configure — `con
 `camera.enabled` stays `false` until it is. See `docs/project-brief.md` §11.2 for what's needed
 once a camera's picked (brand/model decides whether snapshot polling is even possible).
 
+## Music — one-time login on the tablet
+
+`config.js` → `spotify.clientId` is already set. Spotify still needs the panel's exact URL logged
+in once, in the tablet's own browser session, before the tile can control anything:
+
+1. On the tablet, open the panel and tap **"Connecter Spotify"** in the Musique tile.
+2. It redirects to Spotify's normal login/consent screen — sign in with the Premium account and
+   approve access.
+3. It redirects straight back to the panel, now showing whatever's currently playing.
+
+That login is stored in the tablet's browser (`localStorage`) and refreshes itself silently after
+that — no need to repeat this unless the tablet's browser data gets cleared. The tile controls
+whichever device is currently active in that Spotify account (a phone, a computer, or a Spotify
+Connect–enabled speaker) — it doesn't play audio through the tablet itself, it just sends
+play/pause/skip/volume commands to whatever's already playing somewhere else.
+
+If "Connecter Spotify" redirects to an error page instead of the login screen, the most likely
+cause is the redirect URI registered on the Spotify Developer Dashboard not exactly matching this
+panel's URL (including the trailing slash) — check that on
+[developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) → the app → Settings.
+
 ## Changing settings later (location, units, etc.)
 
 Everything tunable lives in one file: **`config.js`**, at the root of the repo. To change

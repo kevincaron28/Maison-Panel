@@ -43,6 +43,15 @@ export const CONFIG = {
   //   { id: "front-door", name: "Front door", snapshotUrl: "http://192.168.1.60/snapshot.jpg", enabled: true }
   camera: { feeds: [] },
 
+  spotify: {
+    // From developer.spotify.com/dashboard — not secret (PKCE doesn't use a client secret), safe
+    // to ship in this public file. Leave blank to hide the tile entirely. The redirect URI
+    // registered on that app must exactly match this page's own URL (see js/spotify.js) — a
+    // mismatch is the most common login failure.
+    clientId: "3e80bb70bf2c4eb09d71a79aa665311c",
+    refresh: 10 * 1000,
+  },
+
   night: { start: 21, end: 6, dimTo: 0.35 },
   dailyReloadHour: 3,
 };

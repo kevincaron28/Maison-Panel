@@ -17,9 +17,11 @@ resilience requirements, design direction, and the phased build order).
 **No exceptions.** Every tile is client-side-only against a public API or local math — there is no
 `/server`, no LAN process, no second machine anywhere in this project. (Google Home speaker control
 was built and then removed, September 2026, per Kevin's decision to keep this to just the deployed
-URL — see git history if that code is ever wanted again. If media control comes back, the plan is
-Spotify Connect via the Spotify Web API with OAuth Authorization Code + PKCE — unlike Chromecast's
-mDNS device discovery, that's a cloud API call the browser can make directly, no server needed.)
+URL — see git history if that code is ever wanted again.) Media control is now `js/spotify.js`:
+Spotify Connect via the Spotify Web API, auth'd with OAuth Authorization Code + PKCE — unlike
+Chromecast's mDNS device discovery, that's a cloud API call the browser makes directly, no server
+needed. It controls whichever device is already active in the Spotify account (phone, computer, or
+a Spotify Connect–enabled speaker) rather than playing through the tablet itself.
 
 There are no lint, build, or test commands. Changes are validated by opening `index.html` (a local
 static server is enough — see below) and, ultimately, by the deployed Pages URL on the actual tablet.
@@ -48,6 +50,8 @@ and service workers, so always serve it over `http(s)`.
         ├──► api.open-meteo.com          (weather, no key, CORS: *)
         ├──► financialmodelingprep.com   (markets, key in query string, CORS enabled)
         ├──► googleapis.com/calendar     (calendar, browser API key)
+        ├──► accounts.spotify.com        (Spotify OAuth, PKCE — no client secret)
+        ├──► api.spotify.com             (Spotify playback control, bearer token)
         └──► http://<camera-lan-ip>      (camera snapshots, LAN only, phase 5)
 ```
 
@@ -67,6 +71,7 @@ js/
   solunar.js          fishing/solunar tile (phase 2, built on vendor/suncalc.js)
   calendar.js         Google Calendar tile (phase 3)
   markets.js          FMP (Financial Modeling Prep) markets strip (phase 4) — direct client-side fetch, no server
+  spotify.js          Spotify Connect playback control — OAuth PKCE, no server (replaces the removed speaker bridge)
   camera.js           camera snapshot tile — config-driven feeds, tap-to-enlarge (phase 5)
 vendor/suncalc.js     vendored SunCalc (MIT/BSD-2-Clause) — not loaded from a CDN
 fonts/                self-hosted Archivo + Public Sans (see fonts/README.md)
@@ -102,7 +107,7 @@ now follows a broader improvement plan (audited and being worked through in smal
 touch targets, markets robustness, and this) that calls for a "premium smart-home panel" look —
 cards with a subtle border and consistent radius, consistent spacing, restrained (no heavy shadow).
 Every top-level tile (`#tile-weather`, `#tile-calendar`, `#tile-solunar`, `#tile-markets`,
-`#tile-cameras`) shares that treatment in `css/panel.css`. Everything else from §8 still holds:
+`#tile-spotify`, `#tile-cameras`) shares that treatment in `css/panel.css`. Everything else from §8 still holds:
 large numbers for primary readouts, small muted secondary text, no shadow beyond the card border
 itself, solunar amber still reserved exclusively for an active period, type floor still 18px for
 anything meant to be read as a primary value (secondary/status labels like `.market-label` sit a
@@ -117,4 +122,5 @@ visibility, exact coordinates) that block phases 3+.
 
 Google Home speaker control was added after the original brief, at Kevin's request, then removed
 (September 2026, see above) in favor of keeping the project a pure static site with no second
-machine. It was never part of the `docs/project-brief.md` phase table.
+machine, and replaced with Spotify Connect (`js/spotify.js`) — same media-control goal, no server
+needed. Neither was ever part of the `docs/project-brief.md` phase table.
