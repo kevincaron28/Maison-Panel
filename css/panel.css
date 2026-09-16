@@ -487,6 +487,70 @@ body {
   cursor: pointer;
 }
 
+/* Yestel T13 landscape profile: 1280x800 CSS pixels. Android browser chrome can make the
+   available height smaller, so compress spacing before content gets clipped below the viewport. */
+@media (max-width: 1280px) and (max-height: 850px) {
+  :root {
+    --size-hero: clamp(72px, 10vw, 128px);
+    --size-section: clamp(32px, 4vw, 48px);
+    --size-label: 18px;
+  }
+
+  #panel {
+    gap: 12px;
+    padding: 16px 24px;
+  }
+
+  #tile-header .clock-date {
+    font-size: 22px;
+  }
+
+  #tile-main {
+    gap: 12px;
+  }
+
+  #tile-weather,
+  #tile-calendar,
+  #tile-solunar,
+  #tile-markets,
+  #tile-spotify {
+    padding: 16px;
+  }
+
+  #tile-weather .hourly-strip,
+  #tile-weather .daily-rows {
+    margin-top: 12px;
+  }
+
+  #tile-weather .hourly-strip {
+    gap: 12px;
+  }
+
+  #tile-side {
+    gap: 12px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  #tile-side > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  #tile-markets {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #tile-markets .market-list {
+    min-height: 0;
+  }
+
+  #tile-cameras {
+    min-height: 112px;
+  }
+}
+
 /* staleness — cached last-good value rendered dimmed with a quiet timestamp, brief §6 */
 .is-stale {
   opacity: 0.55;
