@@ -27,6 +27,17 @@ npx serve .
 
 (Any static file server works. Do not open `index.html` via `file://` — that origin breaks CORS.)
 
+## YESTEL T13 display target
+
+The panel is optimized for the common YESTEL T13 configuration: a 10.1-inch display at
+1280 × 800 pixels in landscape orientation. Android browser and navigation chrome can reduce the
+usable CSS viewport below 800 pixels, so `css/panel.css` includes a compact T13 profile for
+viewports up to 1280 × 850 and keeps the page itself non-scrolling.
+
+The exact physical casing dimensions and browser viewport can vary by hardware revision and kiosk
+settings. Validate the deployed panel with the tablet in landscape, fullscreen mode, and with
+Android navigation controls hidden before changing the T13 breakpoint.
+
 ## Configuration
 
 Everything you'd tune — location, units, refresh intervals, API keys, market symbols, camera feeds —
