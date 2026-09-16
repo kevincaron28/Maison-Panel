@@ -77,13 +77,17 @@ function arrow(change) {
 function render(root, config, quotes, meta) {
   const isFr = config.locale?.startsWith("fr");
   const list = root.querySelector(".market-list");
+  const toggle = root.querySelector(".market-toggle");
+  const expanded = root.dataset.marketsExpanded === "true";
   list.innerHTML = "";
 
-  for (const s of config.markets.symbols) {
+  for (const [index, s] of config.markets.symbols.entries()) {
     const q = quotes[s.sym];
     if (!q) continue;
     const row = document.createElement("div");
-    row.className = `market-row ${q.change >= 0 ? "market-up" : "market-down"}`;
+    row.className = `market-row${index > 0 && !expanded ? " market-row-secondary" : ""} ${
+      q.change >= 0 ? "market-up" : "market-down"
+    }`;
     row.innerHTML =
       `<span class="market-label">${s.label}</span>` +
       `<span class="market-values">` +
@@ -92,6 +96,17 @@ function render(root, config, quotes, meta) {
       `</span>`;
     list.appendChild(row);
   }
+
+  const secondaryCount = Math.max(config.markets.symbols.length - 1, 0);
+  toggle.hidden = secondaryCount === 0;
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.textContent = expanded
+    ? isFr
+      ? "Afficher moins"
+      : "Show less"
+    : isFr
+      ? "Afficher plus"
+      : "Show more";
 
   const note = root.querySelector(".market-note");
   if (Object.keys(quotes).length === 0) {
@@ -105,6 +120,12 @@ function render(root, config, quotes, meta) {
 
 export function initMarkets(config, root) {
   let interval = config.refresh.markets;
+  root.dataset.marketsExpanded = "false";
+  root.querySelector(".market-toggle").addEventListener("click", () => {
+    root.dataset.marketsExpanded = root.dataset.marketsExpanded === "true" ? "false" : "true";
+    const cached = loadCache(CACHE_KEY);
+    if (cached) render(root, config, cached.data, { marketOpen: false, fetchedAt: cached.fetchedAt });
+  });
 
   async function tick() {
     const now = new Date();

@@ -21,7 +21,7 @@ export const CONFIG = {
     symbols: [
       { sym: "SPY", label: "S&P 500" },
       { sym: "QQQ", label: "Nasdaq 100" },
-      { sym: "DIA", label: "Dow" },
+      { sym: "DIA", label: "Dow Jones" },
       { sym: "IWM", label: "Russell 2000" },
     ],
   },

@@ -253,10 +253,35 @@ body {
   color: var(--solunar);
 }
 
+#tile-markets .markets-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+#tile-markets .markets-heading .section-label {
+  margin-bottom: 8px;
+}
+#tile-markets .market-toggle {
+  flex-shrink: 0;
+  border: 1px solid var(--ink-mid);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-mid);
+  font: inherit;
+  font-size: 15px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+#tile-markets .market-toggle:active {
+  background: var(--ink-mid);
+  color: var(--ground);
+}
 #tile-markets .market-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
 }
 /* stat-tile shape: label on its own line, values below — survives a narrow card without wrapping
    mid-number, unlike a single label/price/change row competing for the same line. */
@@ -264,6 +289,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+#tile-markets .market-row-secondary {
+  display: none;
+}
+#tile-markets[data-markets-expanded="true"] .market-row-secondary {
+  display: flex;
 }
 #tile-markets .market-label {
   font-family: var(--font-label);
