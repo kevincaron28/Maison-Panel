@@ -320,6 +320,15 @@ body {
   color: var(--solunar);
   font-size: 15px;
   font-weight: 600;
+  line-height: 1.25;
+}
+.today-alert.is-notice {
+  color: var(--solunar);
+}
+.today-alert.is-danger {
+  border-color: color-mix(in srgb, var(--down) 65%, transparent);
+  background: color-mix(in srgb, var(--down) 12%, var(--ground-raised));
+  color: var(--down);
 }
 
 /* calendar tile — phase 3 (Google Calendar iframe embed, Path B: private, unstyled inside) */

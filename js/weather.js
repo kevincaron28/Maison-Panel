@@ -128,6 +128,45 @@ function metric(label, value, detail) {
   return `<span class="metric-label">${label}</span><strong>${value}</strong><small>${detail}</small>`;
 }
 
+function weatherWarning(data, config) {
+  const isFr = config.locale?.startsWith("fr");
+  const daily = data.daily;
+  const hourly = data.hourly;
+  const nextHours = hourly.time
+    .map((time, index) => ({ time: new Date(time), index }))
+    .filter(({ time }) => time >= new Date() && time.getTime() < Date.now() + 24 * 60 * 60 * 1000);
+  const codes = nextHours.map(({ index }) => hourly.weather_code[index]);
+  const maxWind = daily.wind_gusts_10m_max?.[0] ?? daily.wind_speed_10m_max?.[0] ?? 0;
+  const rainChance = daily.precipitation_probability_max?.[0] ?? 0;
+  const rainTotal = daily.precipitation_sum?.[0] ?? 0;
+  const uv = daily.uv_index_max?.[0] ?? data.current.uv_index ?? 0;
+  const low = daily.temperature_2m_min?.[0];
+  const high = daily.temperature_2m_max?.[0];
+
+  if (codes.some((code) => code >= 95)) {
+    return { level: "danger", text: isFr ? "Orages possibles aujourd'hui" : "Thunderstorms possible today" };
+  }
+  if (maxWind >= 60) {
+    return { level: "danger", text: isFr ? `Rafales jusqu'à ${Math.round(maxWind)} ${config.units.wind}` : `Wind gusts up to ${Math.round(maxWind)} ${config.units.wind}` };
+  }
+  if (codes.some((code) => code >= 71 && code <= 86) && rainChance >= 60) {
+    return { level: "notice", text: isFr ? "Neige ou averses de neige prévues" : "Snow or snow showers expected" };
+  }
+  if (rainChance >= 80 && rainTotal >= 10) {
+    return { level: "notice", text: isFr ? `Pluie importante prévue · ${Math.round(rainTotal)} mm` : `Heavy rain expected · ${Math.round(rainTotal)} mm` };
+  }
+  if (uv >= 8) {
+    return { level: "notice", text: isFr ? `UV élevé · indice ${Math.round(uv)}` : `High UV · index ${Math.round(uv)}` };
+  }
+  if (low != null && low <= -15) {
+    return { level: "notice", text: isFr ? `Froid intense · minimum ${Math.round(low)}°` : `Extreme cold · low ${Math.round(low)}°` };
+  }
+  if (high != null && high >= 32) {
+    return { level: "notice", text: isFr ? `Chaleur importante · maximum ${Math.round(high)}°` : `High heat · high ${Math.round(high)}°` };
+  }
+  return null;
+}
+
 function renderTodayStrip(root, data, config) {
   const isFr = config.locale?.startsWith("fr");
   const daily = data.daily;
@@ -169,13 +208,10 @@ function renderTodayStrip(root, data, config) {
   root.querySelector(".today-daylight-times").textContent = `${time(sunrise)} — ${time(sunset)}`;
 
   const alert = root.querySelector(".today-alert");
-  const code = daily.weather_code[0];
-  const warning =
-    (rain ?? 0) >= 70 ? (isFr ? "Pluie probable" : "Rain likely") :
-    (wind ?? 0) >= 45 ? (isFr ? "Vent fort" : "Strong wind") :
-    code >= 95 ? (isFr ? "Orage possible" : "Storm possible") : "";
+  const warning = weatherWarning(data, config);
   alert.hidden = !warning;
-  alert.textContent = warning;
+  alert.className = `today-alert${warning ? ` is-${warning.level}` : ""}`;
+  alert.textContent = warning ? warning.text : "";
 }
 
 function render(root, data, config, meta) {
