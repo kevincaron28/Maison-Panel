@@ -18,7 +18,7 @@ const CLOSED_CHECK_MS = 5 * MINUTE_MS;
 // which triggers an immediate fetch regardless of the clock (see the tick() comment below) and
 // naturally self-heals — this isn't something to keep bumping routinely, just for a fetch/shape
 // change like this one where an old cached value would otherwise be silently wrong forever.
-const CACHE_KEY = "markets-v2";
+const CACHE_KEY = "markets-v3";
 
 function isMarketOpen(date, marketHours) {
   const parts = Object.fromEntries(
