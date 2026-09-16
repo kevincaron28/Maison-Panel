@@ -134,18 +134,23 @@ function render(root, data, config, meta) {
   const days = root.querySelector(".daily-rows");
   days.innerHTML = "";
   for (let i = 0; i < data.daily.time.length; i++) {
-    const label = new Intl.DateTimeFormat(config.locale, { weekday: "short" }).format(
-      localDate(data.daily.time[i])
-    );
+    const dayDate = localDate(data.daily.time[i]);
+    const label = new Intl.DateTimeFormat(config.locale, { weekday: "short" }).format(dayDate);
+    const dateLabel = new Intl.DateTimeFormat(config.locale, {
+      day: "numeric",
+      month: "short",
+    }).format(dayDate);
     const row = document.createElement("div");
     row.className = "day-row";
     const summary = document.createElement("button");
     summary.className = "day-summary";
     summary.type = "button";
     summary.setAttribute("aria-expanded", "false");
-    summary.innerHTML = `<span>${label}</span>${buildIcon(data.daily.weather_code[i], 1)}<span>${Math.round(
-      data.daily.temperature_2m_max[i]
-    )}° / ${Math.round(data.daily.temperature_2m_min[i])}°</span>`;
+    summary.innerHTML =
+      `<span class="day-name"><strong>${label}</strong><small>${dateLabel}</small></span>` +
+      `${buildIcon(data.daily.weather_code[i], 1)}<span class="day-temperatures">${Math.round(
+        data.daily.temperature_2m_max[i]
+      )}° / ${Math.round(data.daily.temperature_2m_min[i])}°</span>`;
 
     const details = document.createElement("div");
     details.className = "day-details";
