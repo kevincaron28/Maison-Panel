@@ -108,8 +108,7 @@ body {
 #tile-calendar,
 #tile-solunar,
 #tile-markets,
-#tile-spotify,
-#tile-broadcast {
+#tile-spotify {
   background: var(--ground-raised);
   border: 1px solid color-mix(in srgb, var(--ink-mid) 16%, transparent);
   border-radius: 8px;
@@ -473,47 +472,6 @@ body {
   background: var(--ink-mid);
 }
 
-#tile-broadcast {
-  display: flex;
-  flex-direction: column;
-}
-#tile-broadcast .broadcast-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-#tile-broadcast .broadcast-toggle,
-#tile-broadcast .broadcast-menu button {
-  border: 1px solid var(--ink-mid);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--ink-high);
-  font: inherit;
-  font-size: 15px;
-  padding: 8px 10px;
-  cursor: pointer;
-}
-#tile-broadcast .broadcast-toggle {
-  color: var(--ink-mid);
-  padding: 6px 8px;
-}
-#tile-broadcast .broadcast-menu {
-  display: grid;
-  gap: 8px;
-}
-#tile-broadcast .broadcast-menu[hidden] {
-  display: none;
-}
-#tile-broadcast .broadcast-menu button:active {
-  background: var(--ink-mid);
-  color: var(--ground);
-}
-#tile-broadcast .broadcast-status {
-  min-height: 2.4em;
-  color: var(--ink-mid);
-  font-size: 15px;
-}
 
 /* footer: camera strip — phase 5 */
 #tile-cameras {
@@ -636,8 +594,7 @@ body {
   #tile-calendar,
   #tile-solunar,
   #tile-markets,
-  #tile-spotify,
-  #tile-broadcast {
+  #tile-spotify {
     padding: 16px;
   }
 

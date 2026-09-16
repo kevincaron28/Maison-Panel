@@ -6,7 +6,6 @@ import { initMarkets } from "./markets.js";
 import { initCalendar } from "./calendar.js";
 import { initSpotify } from "./spotify.js";
 import { initCamera } from "./camera.js";
-import { initBroadcast } from "./broadcast.js";
 
 function safeInit(name, fn) {
   try {
@@ -69,7 +68,6 @@ function main() {
   safeInit("calendar", () => initCalendar(CONFIG, document.getElementById("tile-calendar")));
   safeInit("spotify", () => initSpotify(CONFIG, document.getElementById("tile-spotify")));
   safeInit("camera", () => initCamera(CONFIG, document.getElementById("tile-cameras")));
-  safeInit("broadcast", () => initBroadcast(document.getElementById("tile-broadcast")));
   safeInit("offline indicator", setupOfflineIndicator);
   safeInit("night mode", () => setupNightMode(CONFIG));
   safeInit("burn-in shift", setupBurnInShift);
