@@ -83,17 +83,20 @@ function render(root, config, quotes, meta) {
 
   for (const [index, s] of config.markets.symbols.entries()) {
     const q = quotes[s.sym];
-    if (!q) continue;
     const row = document.createElement("div");
-    row.className = `market-row${index > 0 && !expanded ? " market-row-secondary" : ""} ${
-      q.change >= 0 ? "market-up" : "market-down"
+    row.className = `market-row${index > 0 && !expanded ? " market-row-secondary" : ""}${
+      q ? ` ${q.change >= 0 ? "market-up" : "market-down"}` : " market-unavailable"
     }`;
-    row.innerHTML =
-      `<span class="market-label">${s.label}</span>` +
-      `<span class="market-values">` +
-      `<span class="market-price">${q.price.toFixed(2)}</span>` +
-      `<span class="market-change">${arrow(q.change)} ${q.change >= 0 ? "+" : ""}${q.changePercentage.toFixed(2)}%</span>` +
-      `</span>`;
+    row.innerHTML = q
+      ? `<span class="market-label">${s.label}</span>` +
+        `<span class="market-values">` +
+        `<span class="market-price">${Number(q.price).toFixed(2)}</span>` +
+        `<span class="market-change">${arrow(Number(q.change))} ${
+          Number(q.change) >= 0 ? "+" : ""
+        }${Number(q.changePercentage).toFixed(2)}%</span>` +
+        `</span>`
+      : `<span class="market-label">${s.label}</span>` +
+        `<span class="market-unavailable-label">${isFr ? "indisponible" : "unavailable"}</span>`;
     list.appendChild(row);
   }
 
@@ -109,8 +112,11 @@ function render(root, config, quotes, meta) {
       : "Show more";
 
   const note = root.querySelector(".market-note");
-  if (Object.keys(quotes).length === 0) {
-    note.textContent = "";
+  const missingCount = config.markets.symbols.filter((s) => !quotes[s.sym]).length;
+  if (missingCount > 0) {
+    note.textContent = isFr
+      ? `${missingCount} indice${missingCount > 1 ? "s" : ""} indisponible${missingCount > 1 ? "s" : ""}`
+      : `${missingCount} index${missingCount > 1 ? "es" : ""} unavailable`;
   } else if (meta.marketOpen) {
     note.textContent = "";
   } else {

@@ -338,6 +338,12 @@ body {
 #tile-markets[data-markets-expanded="true"] .market-row-secondary {
   display: flex;
 }
+#tile-markets .market-unavailable {
+  color: var(--ink-mid);
+}
+#tile-markets .market-unavailable-label {
+  font-size: 15px;
+}
 #tile-markets .market-label {
   font-family: var(--font-label);
   font-size: 15px; /* matches the other secondary/status labels (camera-feed-status) */
