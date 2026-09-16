@@ -69,7 +69,7 @@ body {
   position: relative;
   flex: 1;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-columns: 1fr;
   gap: clamp(12px, 2vh, 20px);
   padding: clamp(16px, 3vh, 28px) clamp(20px, 4vw, 40px);
@@ -504,57 +504,7 @@ body {
 }
 
 
-/* footer: camera strip — phase 5 */
-#tile-cameras {
-  background: var(--ground-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--panel-radius);
-  height: 100%;
-  min-height: 120px;
-  display: flex;
-  gap: clamp(8px, 2vw, 16px);
-  padding: clamp(8px, 1.5vw, 12px);
-}
-#tile-cameras[hidden] {
-  display: none;
-}
-.camera-feed {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-}
-.camera-feed-img {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  display: block;
-  object-fit: cover;
-  background: var(--ground);
-}
-.camera-feed.is-offline .camera-feed-img {
-  opacity: 0.4;
-}
-.camera-feed-label {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  font-size: 15px;
-  color: var(--ink-high);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-}
-.camera-feed-status {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  font-size: 15px;
-  color: var(--down);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-}
+
 
 button:focus-visible {
   outline: 2px solid var(--tide);
@@ -686,9 +636,6 @@ button:focus-visible {
     overflow-y: auto;
   }
 
-  #tile-cameras {
-    min-height: 96px;
-  }
 }
 
 /* staleness — cached last-good value rendered dimmed with a quiet timestamp, brief §6 */
