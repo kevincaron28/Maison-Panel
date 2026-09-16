@@ -645,26 +645,27 @@ button:focus-visible {
    available height smaller, so compress spacing before content gets clipped below the viewport. */
 @media (max-width: 1280px) and (max-height: 850px) {
   :root {
-    --size-hero: clamp(64px, 8vw, 104px);
-    --size-section: clamp(30px, 3.5vw, 44px);
+    --size-hero: clamp(58px, 7vw, 92px);
+    --size-section: clamp(28px, 3.2vw, 40px);
     --size-label: 18px;
   }
 
   #panel {
-    gap: 10px;
-    padding: 12px 20px;
+    gap: 8px;
+    padding: 10px 16px;
   }
 
   #tile-header {
-    padding-bottom: 8px;
+    padding-bottom: 6px;
   }
 
   #tile-header .clock-date {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   #tile-main {
-    gap: 10px;
+    grid-template-columns: 1.2fr 1fr 0.8fr;
+    gap: 8px;
   }
 
   #tile-weather,
@@ -672,16 +673,17 @@ button:focus-visible {
   #tile-solunar,
   #tile-markets,
   #tile-spotify {
-    padding: 12px;
+    padding: 10px;
   }
 
   #tile-weather .hourly-strip,
   #tile-weather .daily-rows {
-    margin-top: 8px;
+    margin-top: 6px;
   }
 
   #tile-weather .hourly-strip {
-    gap: 10px;
+    gap: 8px;
+    padding-bottom: 0;
   }
 
   #tile-weather .daily-rows {
@@ -691,7 +693,9 @@ button:focus-visible {
   }
 
   #tile-weather .day-summary {
-    min-height: 40px;
+    min-height: 36px;
+    padding-top: 2px;
+    padding-bottom: 2px;
   }
 
   #tile-weather .day-details {
@@ -701,7 +705,7 @@ button:focus-visible {
   }
 
   #tile-side {
-    gap: 8px;
+    gap: 6px;
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
@@ -726,22 +730,33 @@ button:focus-visible {
   #today-strip {
     grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(150px, 1.5fr);
     gap: 6px;
-    min-height: 76px;
+    min-height: 64px;
   }
 
   .today-metric,
   .today-daylight,
   .today-alert {
-    padding: 8px 10px;
+    padding: 6px 8px;
   }
 
   .today-metric strong {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .today-alert {
     min-width: 0;
     font-size: 14px;
+  }
+
+  .metric-label,
+  .today-daylight-heading,
+  .today-metric small,
+  .today-daylight-times {
+    font-size: 12px;
+  }
+
+  .daylight-track {
+    margin: 7px 0 5px;
   }
 
 }
