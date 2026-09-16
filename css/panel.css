@@ -175,9 +175,51 @@ body {
   gap: 8px;
 }
 #tile-weather .daily-rows .day-row {
+  color: var(--ink-mid);
+}
+#tile-weather .day-summary {
+  width: 100%;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+#tile-weather .day-summary:active,
+#tile-weather .day-summary[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--ink-mid) 12%, transparent);
+}
+#tile-weather .day-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 4px 6px 8px;
   color: var(--ink-mid);
+  font-size: 15px;
+}
+#tile-weather .day-details[hidden] {
+  display: none;
+}
+#tile-weather .day-details > span {
+  white-space: nowrap;
+}
+#tile-weather .day-details span span {
+  color: var(--tide);
+}
+#tile-weather .day-summary svg {
+  flex: 0 0 auto;
+  width: 1.2em;
+  height: 1.2em;
+}
+#tile-weather .day-summary > span:last-child {
+  margin-left: auto;
 }
 #tile-weather .attribution {
   margin-top: auto;

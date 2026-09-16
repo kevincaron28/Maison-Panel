@@ -79,10 +79,10 @@ async function fetchWeather(config) {
   url.searchParams.set("hourly", "temperature_2m,precipitation_probability,weather_code");
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max"
+    "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant"
   );
   url.searchParams.set("timezone", config.timezone);
-  url.searchParams.set("forecast_days", "6");
+  url.searchParams.set("forecast_days", "7");
   url.searchParams.set(
     "temperature_unit",
     config.units.temp === "fahrenheit" ? "fahrenheit" : "celsius"
@@ -95,6 +95,11 @@ async function fetchWeather(config) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
   return res.json();
+}
+
+function localDate(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(year, month - 1, day, 12);
 }
 
 function windArrow(deg) {
@@ -130,13 +135,44 @@ function render(root, data, config, meta) {
   days.innerHTML = "";
   for (let i = 0; i < data.daily.time.length; i++) {
     const label = new Intl.DateTimeFormat(config.locale, { weekday: "short" }).format(
-      new Date(data.daily.time[i])
+      localDate(data.daily.time[i])
     );
     const row = document.createElement("div");
     row.className = "day-row";
-    row.innerHTML = `<span>${label}</span>${buildIcon(data.daily.weather_code[i], 1)}<span>${Math.round(
+    const summary = document.createElement("button");
+    summary.className = "day-summary";
+    summary.type = "button";
+    summary.setAttribute("aria-expanded", "false");
+    summary.innerHTML = `<span>${label}</span>${buildIcon(data.daily.weather_code[i], 1)}<span>${Math.round(
       data.daily.temperature_2m_max[i]
     )}° / ${Math.round(data.daily.temperature_2m_min[i])}°</span>`;
+
+    const details = document.createElement("div");
+    details.className = "day-details";
+    details.hidden = true;
+    const rainChance = data.daily.precipitation_probability_max?.[i];
+    const rainTotal = data.daily.precipitation_sum?.[i];
+    const windMax = data.daily.wind_speed_10m_max?.[i];
+    const windDirection = data.daily.wind_direction_10m_dominant?.[i];
+    details.innerHTML =
+      `<span>${isFr ? "Pluie" : "Rain"}: ${rainChance ?? "—"}%` +
+      ` (${rainTotal == null ? "—" : Math.round(rainTotal)} mm)</span>` +
+      `<span>${isFr ? "Vent" : "Wind"}: ${windMax == null ? "—" : Math.round(windMax)} ${config.units.wind}` +
+      `${windDirection == null ? "" : ` ${windArrow(windDirection)}`}</span>` +
+      `<span>${isFr ? "Soleil" : "Sun"}: ${new Intl.DateTimeFormat(config.locale, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(data.daily.sunrise[i]))}–${new Intl.DateTimeFormat(config.locale, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(data.daily.sunset[i]))}</span>`;
+
+    summary.addEventListener("click", () => {
+      const expanded = !summary.matches("[aria-expanded='true']");
+      summary.setAttribute("aria-expanded", String(expanded));
+      details.hidden = !expanded;
+    });
+    row.append(summary, details);
     days.appendChild(row);
   }
 
