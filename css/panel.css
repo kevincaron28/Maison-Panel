@@ -110,8 +110,8 @@ body {
 #tile-markets,
 #tile-spotify {
   background: var(--ground-raised);
-  border: 1px solid color-mix(in srgb, var(--ink-mid) 20%, transparent);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--ink-mid) 16%, transparent);
+  border-radius: 8px;
   padding: 24px;
 }
 
@@ -262,6 +262,38 @@ body {
 
 #tile-solunar .moon-disc {
   line-height: 0;
+}
+#tile-solunar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+#tile-solunar .moon-toggle {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border: 1px solid color-mix(in srgb, var(--ink-mid) 30%, transparent);
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-high);
+  cursor: pointer;
+}
+#tile-solunar .moon-toggle:active,
+#tile-solunar .moon-toggle[aria-expanded="true"] {
+  border-color: var(--tide);
+  background: color-mix(in srgb, var(--tide) 10%, transparent);
+}
+#tile-solunar .moon-toggle svg {
+  width: 64px;
+  height: 64px;
+}
+#tile-solunar .solunar-details {
+  width: 100%;
+}
+#tile-solunar .solunar-details[hidden] {
+  display: none;
 }
 #tile-solunar .moon-phase-label {
   color: var(--ink-mid);

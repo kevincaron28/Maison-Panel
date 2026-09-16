@@ -28,10 +28,14 @@
     <section id="tile-side">
       <div id="tile-solunar">
         <h2 class="section-label">Pêche</h2>
-        <div class="moon-disc"></div>
-        <div class="moon-phase-label"></div>
-        <div class="next-period value-fade"></div>
-        <div class="day-rating"></div>
+        <button class="moon-toggle" type="button" aria-expanded="false" aria-label="Afficher les détails de pêche">
+          <span class="moon-disc"></span>
+        </button>
+        <div class="solunar-details" hidden>
+          <div class="moon-phase-label"></div>
+          <div class="next-period value-fade"></div>
+          <div class="day-rating"></div>
+        </div>
       </div>
       <div id="tile-markets">
         <div class="markets-heading">

@@ -172,6 +172,14 @@ function updateCountdown(root, config, periods) {
 export function initSolunar(config, root) {
   const { lat, lon } = config.location;
   let periods = [];
+  const toggle = root.querySelector(".moon-toggle");
+  const details = root.querySelector(".solunar-details");
+
+  toggle.addEventListener("click", () => {
+    const expanded = toggle.getAttribute("aria-expanded") !== "true";
+    toggle.setAttribute("aria-expanded", String(expanded));
+    details.hidden = !expanded;
+  });
 
   function recompute() {
     const today = startOfLocalDay(new Date());
