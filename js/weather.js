@@ -1,6 +1,8 @@
 // Weather tile — Open-Meteo (no key, CORS: *). Brief §5.1.
 import { createPoller, formatUpdatedAt } from "./store.js";
 
+const WEATHER_CACHE_KEY = "weather-v2";
+
 // WMO weather_code → { fr, en, icon }. Icon keys map to buildIcon() below.
 const WMO = {
   0: { fr: "ciel dégagé", en: "clear sky", icon: "clear" },
@@ -74,12 +76,12 @@ async function fetchWeather(config) {
   url.searchParams.set("longitude", lon);
   url.searchParams.set(
     "current",
-    "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,is_day"
+    "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,is_day,uv_index"
   );
   url.searchParams.set("hourly", "temperature_2m,precipitation_probability,weather_code");
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant"
+    "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,uv_index_max"
   );
   url.searchParams.set("timezone", config.timezone);
   url.searchParams.set("forecast_days", "7");
@@ -94,7 +96,22 @@ async function fetchWeather(config) {
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
-  return res.json();
+  const data = await res.json();
+
+  const airUrl = new URL("https://air-quality-api.open-meteo.com/v1/air-quality");
+  airUrl.searchParams.set("latitude", lat);
+  airUrl.searchParams.set("longitude", lon);
+  airUrl.searchParams.set("current", "us_aqi,pm2_5");
+  airUrl.searchParams.set("timezone", config.timezone);
+  try {
+    const airRes = await fetch(airUrl);
+    if (!airRes.ok) throw new Error(`Open-Meteo air quality ${airRes.status}`);
+    data.airQuality = await airRes.json();
+  } catch (err) {
+    console.warn("[weather] air quality unavailable", err);
+    data.airQuality = null;
+  }
+  return data;
 }
 
 function localDate(dateString) {
@@ -107,9 +124,64 @@ function windArrow(deg) {
   return `<span style="display:inline-block;transform:rotate(${deg}deg)">&#8593;</span>`;
 }
 
+function metric(label, value, detail) {
+  return `<span class="metric-label">${label}</span><strong>${value}</strong><small>${detail}</small>`;
+}
+
+function renderTodayStrip(root, data, config) {
+  const isFr = config.locale?.startsWith("fr");
+  const daily = data.daily;
+  const current = data.current;
+  const air = data.airQuality?.current;
+  const uv = daily.uv_index_max?.[0] ?? current.uv_index;
+  const rain = daily.precipitation_probability_max?.[0];
+  const wind = daily.wind_speed_10m_max?.[0];
+  const gust = daily.wind_gusts_10m_max?.[0];
+  const sunrise = new Date(daily.sunrise[0]);
+  const sunset = new Date(daily.sunset[0]);
+  const now = Date.now();
+  const daylight = Math.max(0, Math.min(1, (now - sunrise.getTime()) / (sunset.getTime() - sunrise.getTime())));
+  const time = (date) => new Intl.DateTimeFormat(config.locale, { hour: "2-digit", minute: "2-digit" }).format(date);
+
+  root.querySelector('[data-metric="uv"]').innerHTML = metric(
+    "UV",
+    uv == null ? "—" : Math.round(uv),
+    uv >= 6 ? (isFr ? "élevé" : "high") : isFr ? "aujourd'hui" : "today"
+  );
+  root.querySelector('[data-metric="rain"]').innerHTML = metric(
+    isFr ? "Pluie" : "Rain",
+    rain == null ? "—" : `${rain}%`,
+    daily.precipitation_sum?.[0] == null ? "—" : `${Math.round(daily.precipitation_sum[0])} mm`
+  );
+  root.querySelector('[data-metric="wind"]').innerHTML = metric(
+    isFr ? "Vent" : "Wind",
+    wind == null ? "—" : `${Math.round(wind)}`,
+    gust == null ? config.units.wind : `${config.units.wind} · rafales ${Math.round(gust)}`
+  );
+  root.querySelector('[data-metric="air"]').innerHTML = metric(
+    "AQI",
+    air?.us_aqi == null ? "—" : Math.round(air.us_aqi),
+    air?.pm2_5 == null ? (isFr ? "air" : "air") : `PM2.5 ${Math.round(air.pm2_5)}`
+  );
+
+  root.querySelector(".daylight-percent").textContent = `${Math.round(daylight * 100)}%`;
+  root.querySelector(".daylight-track span").style.width = `${daylight * 100}%`;
+  root.querySelector(".today-daylight-times").textContent = `${time(sunrise)} — ${time(sunset)}`;
+
+  const alert = root.querySelector(".today-alert");
+  const code = daily.weather_code[0];
+  const warning =
+    (rain ?? 0) >= 70 ? (isFr ? "Pluie probable" : "Rain likely") :
+    (wind ?? 0) >= 45 ? (isFr ? "Vent fort" : "Strong wind") :
+    code >= 95 ? (isFr ? "Orage possible" : "Storm possible") : "";
+  alert.hidden = !warning;
+  alert.textContent = warning;
+}
+
 function render(root, data, config, meta) {
   const c = data.current;
   const isFr = config.locale?.startsWith("fr");
+  renderTodayStrip(document, data, config);
 
   root.querySelector(".hero-temp").innerHTML =
     `${buildIcon(c.weather_code, c.is_day)} ${Math.round(c.temperature_2m)}°`;
@@ -194,7 +266,7 @@ export function initWeather(config, root) {
   if (locationEl) locationEl.textContent = config.location.label ? `— ${config.location.label}` : "";
 
   const poller = createPoller({
-    key: "weather",
+    key: WEATHER_CACHE_KEY,
     intervalMs: config.refresh.weather,
     fetcher: () => fetchWeather(config),
     onData: (data, meta) => render(root, data, config, meta),

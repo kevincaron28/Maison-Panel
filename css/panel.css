@@ -69,7 +69,7 @@ body {
   position: relative;
   flex: 1;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-columns: 1fr;
   gap: clamp(12px, 2vh, 20px);
   padding: clamp(16px, 3vh, 28px) clamp(20px, 4vw, 40px);
@@ -260,6 +260,68 @@ body {
   opacity: 0.7;
 }
 
+#today-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 0.8fr)) minmax(180px, 1.4fr) auto;
+  gap: 10px;
+  align-items: stretch;
+  min-height: 88px;
+}
+.today-metric,
+.today-daylight,
+.today-alert {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--panel-radius);
+  background: var(--ground-raised);
+}
+.today-metric strong {
+  margin-top: 4px;
+  color: var(--ink-high);
+  font-family: var(--font-readout);
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.metric-label,
+.today-daylight-heading,
+.today-metric small,
+.today-daylight-times {
+  color: var(--ink-mid);
+  font-size: 14px;
+}
+.today-metric small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today-daylight-heading {
+  display: flex;
+  justify-content: space-between;
+}
+.daylight-track {
+  height: 6px;
+  margin: 12px 0 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--ink-mid) 20%, transparent);
+}
+.daylight-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tide);
+}
+.today-alert {
+  min-width: 128px;
+  color: var(--solunar);
+  font-size: 15px;
+  font-weight: 600;
+}
+
 /* calendar tile — phase 3 (Google Calendar iframe embed, Path B: private, unstyled inside) */
 #tile-calendar {
   display: flex;
@@ -349,6 +411,22 @@ body {
   color: var(--ink-mid);
   margin-top: 8px;
   letter-spacing: 4px;
+}
+#tile-solunar .solunar-periods {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--ink-mid);
+  font-size: 14px;
+}
+#tile-solunar .solunar-periods span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+#tile-solunar .solunar-periods strong {
+  color: var(--ink-high);
+  font-weight: 500;
 }
 
 /* an active solunar period is the one place amber appears on the whole panel — needs to out-rank
@@ -634,6 +712,27 @@ button:focus-visible {
     min-height: 0;
     max-height: 180px;
     overflow-y: auto;
+  }
+
+  #today-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(150px, 1.5fr);
+    gap: 6px;
+    min-height: 76px;
+  }
+
+  .today-metric,
+  .today-daylight,
+  .today-alert {
+    padding: 8px 10px;
+  }
+
+  .today-metric strong {
+    font-size: 20px;
+  }
+
+  .today-alert {
+    min-width: 0;
+    font-size: 14px;
   }
 
 }

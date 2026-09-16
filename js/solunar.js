@@ -128,6 +128,14 @@ function render(root, config, model) {
   root.querySelector(".moon-phase-label").textContent =
     `${waxing ? (isFr ? "croissante" : "waxing") : isFr ? "décroissante" : "waning"} ${Math.round(fraction * 100)}%`;
   root.querySelector(".day-rating").textContent = starString(stars);
+  root.querySelector(".solunar-periods").innerHTML = periods
+    .slice(0, 4)
+    .map((period) => {
+      const label = periodKindLabel(period.label, isFr);
+      const time = new Intl.DateTimeFormat(config.locale, { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(period.center);
+      return `<span><strong>${label}</strong>${time}</span>`;
+    })
+    .join("");
 
   updateCountdown(root, config, periods);
 }
