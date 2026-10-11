@@ -17,10 +17,13 @@ const TOKEN_KEY = "maison-panel:spotify-tokens";
 const VERIFIER_KEY = "spotify-pkce-verifier";
 const STATE_KEY = "spotify-pkce-state";
 import { fetchJson } from "./network.js";
+import { createMusicControls } from "./music-controls.js";
 let refreshInFlight = null;
 
-function redirectUri() {
-  return `${location.origin}${location.pathname}`;
+export function redirectUri(page = location) {
+  // One registered callback per origin. /index.html and query parameters must not
+  // turn into different Spotify redirect URIs on Fully Kiosk.
+  return `${page.origin}/`;
 }
 
 function randomString(length) {
@@ -88,7 +91,7 @@ function clearTokens() {
 
 async function exchangeCodeForTokens(clientId, code) {
   const verifier = sessionStorage.getItem(VERIFIER_KEY);
-  sessionStorage.removeItem(VERIFIER_KEY);
+  if (!verifier) throw new Error("La session de connexion a expiré. Reconnectez Spotify dans ce même navigateur.");
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
@@ -106,6 +109,7 @@ async function exchangeCodeForTokens(clientId, code) {
     refreshToken: data.refresh_token,
     expiresAt: Date.now() + data.expires_in * 1000,
   });
+  sessionStorage.removeItem(VERIFIER_KEY);
 }
 
 async function refreshTokens(clientId, tokens) {
@@ -134,6 +138,10 @@ async function refreshTokens(clientId, tokens) {
 // doesn't try to redeem an already-used code.
 async function consumeAuthRedirect(clientId) {
   const params = new URLSearchParams(location.search);
+  if (params.has("error")) {
+    history.replaceState(null, "", redirectUri());
+    throw new Error("Connexion Spotify annulée ou refusée. Vous pouvez réessayer.");
+  }
   const code = params.get("code");
   if (!code) return;
   const expectedState = sessionStorage.getItem(STATE_KEY);
@@ -141,13 +149,12 @@ async function consumeAuthRedirect(clientId) {
   const gotState = params.get("state");
   history.replaceState(null, "", redirectUri());
   if (!expectedState || gotState !== expectedState) {
-    console.warn("[spotify] state mismatch on auth redirect, ignoring code");
-    return;
+    throw new Error("Session Spotify expirée. Recommencez la connexion dans Fully Kiosk, sans changer de navigateur.");
   }
   try {
     await exchangeCodeForTokens(clientId, code);
   } catch (err) {
-    console.warn("[spotify] token exchange failed", err);
+    throw new Error(`Connexion Spotify non terminée (${err.status || "réseau"}). Vérifiez le retour ${redirectUri()} dans Spotify Developer Dashboard.`);
   }
 }
 
@@ -162,7 +169,7 @@ export async function getValidAccessToken(clientId) {
         });
       tokens = await refreshInFlight;
     } catch (err) {
-      if (err.status === 400 || err.status === 401) {
+      if (err.code === "invalid_grant") {
         clearTokens();
         return null;
       }
@@ -172,7 +179,7 @@ export async function getValidAccessToken(clientId) {
   return tokens.accessToken;
 }
 
-async function apiRequest(method, path, accessToken, params) {
+async function apiRequest(method, path, accessToken, params, body) {
   const url = new URL(API_BASE + path);
   if (params)
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -182,15 +189,39 @@ async function apiRequest(method, path, accessToken, params) {
     const res = await fetch(url, {
       method,
       signal: controller.signal,
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${accessToken}`, ...(body ? {"Content-Type":"application/json"} : {}) },
+      ...(body ? {body: JSON.stringify(body)} : {}),
     });
-    if (res.status === 401) throw new Error("unauthorized");
+    if (res.status === 401) {
+      const error = new Error("unauthorized");
+      error.status = 401;
+      throw error;
+    }
     if (res.status === 204 || res.status === 202) return null;
-    if (!res.ok) throw new Error(`spotify api ${method} ${path} ${res.status}`);
+    if (!res.ok) {
+      const error = new Error(`spotify api ${method} ${path} ${res.status}`);
+      error.status = res.status;
+      throw error;
+    }
     const text = await res.text();
     return text ? JSON.parse(text) : null;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+export async function requestSpotify(clientId, method, path, params, body) {
+  let token = await getValidAccessToken(clientId);
+  if (!token) return { signedOut: true };
+  try {
+    return await apiRequest(method, path, token, params, body);
+  } catch (err) {
+    if (err.status !== 401) throw err;
+    const saved = loadTokens();
+    if (saved) saveTokens({ ...saved, expiresAt: 0 });
+    token = await getValidAccessToken(clientId);
+    if (!token) return { signedOut: true };
+    return await apiRequest(method, path, token, params, body);
   }
 }
 
@@ -204,11 +235,16 @@ function render(root, state, actions) {
     btn.textContent = "Connecter Spotify";
     btn.addEventListener("click", actions.login);
     body.appendChild(btn);
+    const help = document.createElement("a");
+    help.href = new URL("../settings.html#spotify", import.meta.url).href;
+    help.className = "spotify-help";
+    help.textContent = "Aide connexion";
+    body.appendChild(help);
     return;
   }
 
   if (state.status === "idle") {
-    body.innerHTML = `<div class="spotify-idle">Lancez Spotify sur votre téléphone ou votre enceinte pour utiliser les commandes.</div>`;
+    body.innerHTML = `<div class="spotify-idle">Spotify connecté · lancez une musique sur votre téléphone ou votre enceinte.</div>`;
     return;
   }
 
@@ -262,6 +298,10 @@ function render(root, state, actions) {
   volUpBtn.setAttribute("aria-label", "Volume plus");
   volUpBtn.textContent = "+";
   volUpBtn.addEventListener("click", () => actions.volume(10));
+  volDownBtn.disabled = volUpBtn.disabled = state.supportsVolume === false || state.restricted || state.busy;
+  prevBtn.disabled = Boolean(state.busy || state.restricted || state.disallows?.skipping_prev);
+  nextBtn.disabled = Boolean(state.busy || state.restricted || state.disallows?.skipping_next);
+  playBtn.disabled = Boolean(state.busy || state.restricted || state.disallows?.[state.isPlaying ? "pausing" : "resuming"]);
 
   volume.append(volDownBtn, volUpBtn);
   body.appendChild(volume);
@@ -275,19 +315,45 @@ export function initSpotify(config, root) {
   }
   root.hidden = false;
 
-  const state = { status: "signed-out", volumePercent: 50 };
+  const state = { status: "signed-out", volumePercent: 50, repeat: "off", disallows: {}, busy: false };
+  let authError = "";
+  let polling = null;
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "music-more";
+  more.textContent = "Commandes";
+  more.hidden = true;
+  root.appendChild(more);
+  function paint() {
+    // Preserve keyboard focus when the compact footer updates.
+    const active = root.querySelector(".spotify-body")?.contains(document.activeElement)
+      ? document.activeElement.getAttribute("aria-label") : null;
+    render(root, state, actions);
+    if (active) [...root.querySelectorAll("button[aria-label]")].find(b=>b.getAttribute("aria-label") === active)?.focus();
+    more.hidden = state.status === "signed-out";
+    root.querySelector(".spotify-status").textContent = state.feedback || "";
+    music.update(state);
+  }
 
   async function pollNowPlaying() {
+    if (polling) return polling;
+    polling = pollPlayback().finally(() => { polling = null; });
+    return polling;
+  }
+  async function pollPlayback() {
     try {
-      const token = await getValidAccessToken(cfg.clientId);
-      if (!token) {
+      const data = await requestSpotify(cfg.clientId, "GET", "");
+      if (data?.signedOut) {
         state.status = "signed-out";
-        render(root, state, actions);
+        state.feedback = authError;
+        paint();
         return;
       }
-      const data = await apiRequest("GET", "", token);
       if (!data || !data.item) {
         state.status = "idle";
+        state.isPlaying = false;
+        state.deviceName = data?.device?.name || "";
+        state.disallows = {};
       } else {
         state.status = "playing";
         state.isPlaying = data.is_playing;
@@ -299,32 +365,60 @@ export function initSpotify(config, root) {
             "Spotify",
         };
         state.deviceName = data.device?.name || "";
+        state.deviceId = data.device?.id;
+        state.restricted = Boolean(data.device?.is_restricted);
+        state.supportsVolume = data.device?.supports_volume !== false;
+        state.shuffle = Boolean(data.shuffle_state);
+        state.repeat = data.repeat_state || "off";
+        state.durationMs = data.item.duration_ms || 0;
+        state.progressMs = data.progress_ms || 0;
+        state.artwork = data.item.album?.images?.[0]?.url || data.item.images?.[0]?.url;
+        state.disallows = data.actions?.disallows || data.actions || {};
         if (typeof data.device?.volume_percent === "number")
           state.volumePercent = data.device.volume_percent;
       }
-      render(root, state, actions);
-      root.querySelector(".spotify-status").textContent = "";
+      paint();
     } catch (err) {
       console.warn("[spotify] now-playing poll failed", err);
       if (err.message === "unauthorized") {
         const tokens = loadTokens();
         if (tokens) saveTokens({ ...tokens, expiresAt: 0 });
       }
-      root.querySelector(".spotify-status").textContent =
-        "Spotify indisponible · nouvel essai automatique";
+      state.feedback = err.code === "invalid_client"
+        ? "Configuration Spotify à vérifier · Aide connexion"
+        : "Spotify indisponible · nouvel essai automatique";
+      paint();
       // leave the last-rendered state on screen — one failed poll shouldn't blank the tile
     }
   }
 
-  async function act(run) {
+  async function act(method, path, params, body) {
+    if (state.busy) return;
+    state.busy = true;
+    state.feedback = "Envoi de la commande…";
+    paint();
     try {
-      const token = await getValidAccessToken(cfg.clientId);
-      if (!token) return;
-      await run(token);
+      // Do not let an older in-flight poll overwrite state after a command.
+      if (polling) await polling;
+      const result = await requestSpotify(cfg.clientId, method, path, params, body);
+      if (result?.signedOut) {
+        state.status = "signed-out";
+        state.feedback = "Session expirée · reconnectez Spotify.";
+        return;
+      }
+      state.feedback = "Commande envoyée";
+      await pollNowPlaying();
     } catch (err) {
       console.warn("[spotify] control action failed", err);
+      state.feedback = err.status === 403
+        ? "Commande refusée · vérifiez Spotify Premium et l’accès à l’application."
+        : err.status === 404
+          ? "Aucun appareil actif · lancez Spotify sur votre enceinte ou téléphone."
+          : "Commande non envoyée · réessayez après avoir vérifié la connexion.";
+    } finally {
+      state.busy = false;
+      paint();
     }
-    pollNowPlaying();
   }
 
   const actions = {
@@ -333,17 +427,28 @@ export function initSpotify(config, root) {
         root.querySelector(".spotify-status").textContent =
           "Connexion impossible. Vérifiez HTTPS et le stockage du navigateur.";
       }),
-    play: () => act((token) => apiRequest("PUT", "/play", token)),
-    pause: () => act((token) => apiRequest("PUT", "/pause", token)),
-    previous: () => act((token) => apiRequest("POST", "/previous", token)),
-    next: () => act((token) => apiRequest("POST", "/next", token)),
-    volume: (delta) =>
-      act(async (token) => {
-        const next = Math.max(0, Math.min(100, state.volumePercent + delta));
-        await apiRequest("PUT", "/volume", token, { volume_percent: next });
-        state.volumePercent = next;
-      }),
+    play: () => act("PUT", "/play"),
+    pause: () => act("PUT", "/pause"),
+    previous: () => act("POST", "/previous"),
+    next: () => act("POST", "/next"),
+    volume: (delta) => actions.setVolume(state.volumePercent + delta),
+    setVolume: (value) => act("PUT", "/volume", {volume_percent: Math.max(0, Math.min(100, Math.round(value)))}),
+    seek: (value) => act("PUT", "/seek", {position_ms: Math.max(0, Math.min(state.durationMs - 1, Math.round(value)))}),
+    shuffle: () => act("PUT", "/shuffle", {state: !state.shuffle}),
+    repeat: () => act("PUT", "/repeat", {state: {off:"context",context:"track",track:"off"}[state.repeat] || "off"}),
+    transfer: (id) => id && act("PUT", "", undefined, {device_ids:[id],play:Boolean(state.isPlaying)}),
+    devices: async () => {
+      try {
+        const data = await requestSpotify(cfg.clientId, "GET", "/devices");
+        music.devices(data?.devices || []);
+      } catch {
+        state.feedback = "Impossible de charger les appareils. Réessayez avec Actualiser.";
+        paint();
+      }
+    },
   };
+  const music = createMusicControls(root, actions);
+  more.addEventListener("click", () => music.open());
 
   async function tick() {
     await pollNowPlaying();
@@ -351,11 +456,12 @@ export function initSpotify(config, root) {
   }
 
   (async () => {
-    render(root, state, actions);
+    paint();
     try {
       await consumeAuthRedirect(cfg.clientId);
     } catch (err) {
       console.warn("[spotify] login unavailable", err);
+      authError = err.message;
     }
     tick();
   })();

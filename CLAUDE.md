@@ -11,6 +11,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Node 24+ development checks: `npm ci`, `npm test`, `npm run package`; preview with `npm run serve`.
 - Optional camera feeds require HTTPS from the hosted HTTPS panel; no camera appears when feeds are empty.
 - FMP setup is per device in `settings.html`. The old exposed key must be revoked by the account owner.
+- Markets now defaults to TradingView's separate-origin iframe with four labeled ETF benchmarks;
+  FMP is an optional legacy provider. Never load third-party embed scripts in Maison's origin.
+- Fishing details must stay visible when its panel opens. Do not reintroduce nested disclosure.
+- Spotify callback is the origin root with a trailing slash, never the current pathname.
+- `js/music-controls.js` owns the expanded music dialog; controls honor Spotify/device restrictions.
 - `docs/system-audit.md` records evidence, limitations and upgrade sequence. `/design/` contains
   sample-data concepts and `/design/live.html` the shared layout with real modules. A / Nuit calme is approved and active in index.html.
 

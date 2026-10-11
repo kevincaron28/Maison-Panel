@@ -17,6 +17,7 @@ export const CONFIG = {
   },
 
   markets: {
+    provider: "tradingview", // Four ETF benchmarks, without an FMP subscription or API key.
     fmpKey: "", // Enter a replacement key per device in settings.html. Never commit credentials.
     marketHours: { startHourEt: 9, startMinuteEt: 30, endHourEt: 16 },
     symbols: [

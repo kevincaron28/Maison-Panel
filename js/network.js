@@ -10,6 +10,10 @@ export async function fetchJson(url, options = {}, timeoutMs = 15000) {
     if (!response.ok) {
       const error = new Error(`HTTP ${response.status}`);
       error.status = response.status;
+      try {
+        const body = await response.json();
+        if (typeof body.error === "string") error.code = body.error;
+      } catch { /* Non-JSON errors still preserve their HTTP status. */ }
       throw error;
     }
     return await response.json();

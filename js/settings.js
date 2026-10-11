@@ -1,6 +1,15 @@
 const status = document.getElementById("settings-status");
 const input = document.getElementById("market-key");
 document.getElementById("current-url").textContent = location.origin + "/";
+document.getElementById("spotify-redirect").textContent = location.origin + "/";
+try {
+  const hasSession = Boolean(localStorage.getItem("maison-panel:spotify-tokens"));
+  document.getElementById("spotify-storage-status").textContent = hasSession
+    ? "Une session Spotify est enregistrée dans ce navigateur."
+    : "Aucune session Spotify enregistrée dans ce navigateur.";
+} catch {
+  document.getElementById("spotify-storage-status").textContent = "Le stockage est bloqué : autorisez les données de site pour conserver la connexion.";
+}
 document.getElementById("device-status").textContent = navigator.onLine
   ? "Connexion réseau disponible"
   : "Hors ligne";

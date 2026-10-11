@@ -11,7 +11,7 @@ Repo-specific dev notes: [`CLAUDE.md`](CLAUDE.md). Getting this onto an actual t
 
 Plain HTML + CSS + vanilla JS modules. No framework, no transpilation, no bundler, no server. Deployed
 as a static site (Cloudflare Workers with static assets); the tablet's browser calls every API
-directly (Open-Meteo, FMP, Google Calendar). Solunar/fishing timing is local astronomy math via a
+directly (Open-Meteo, Google Calendar, Spotify), with an isolated TradingView market widget. Solunar/fishing timing is local astronomy math via a
 vendored copy of [SunCalc](https://github.com/mourner/suncalc) — no network call for that tile.
 
 No server, no second machine, no LAN process of any kind — every tile is client-side-only against
@@ -31,8 +31,8 @@ npm run serve
 
 The panel is optimized for the common YESTEL T13 configuration: a 10.1-inch display at
 1280 × 800 pixels in landscape orientation. Android browser and navigation chrome can reduce the
-usable CSS viewport below 800 pixels, so `css/panel.css` includes a compact T13 profile for
-viewports up to 1280 × 850 and keeps the page itself non-scrolling.
+usable CSS viewport below 800 pixels, so `css/calm.css` includes a compact landscape profile.
+The home screen fits the tablet; detail panels scroll when needed and retain an accessible close control.
 
 The exact physical casing dimensions and browser viewport can vary by hardware revision and kiosk
 settings. Validate the deployed panel with the tablet in landscape, fullscreen mode, and with
@@ -53,16 +53,15 @@ lives in [`config.js`](config.js). That's the only file meant to be hand-edited 
 The existing production dashboard is hosted at
 [`maison-panel.kcaron.workers.dev`](https://maison-panel.kcaron.workers.dev):
 
-- **Markets** uses Financial Modeling Prep. Set a replacement key per tablet via **Réglages**;
-  the previously committed key must be revoked at FMP. Keys entered here stay out of Git, but are
-  still browser credentials and are sent to FMP. During the October 11 audit, QQQ, DIA and IWM
-  returned HTTP 402; SPY returned a quote. A code change cannot unlock provider entitlements.
-  The free
-  tier is end-of-day only, same limitation Finnhub's free tier turned out to have. It fetches each
-  symbol individually and sequentially straight from the browser (FMP's multi-symbol batch-quote
-  endpoint is paid-plan-only and returns a "Restricted Endpoint" error on the free tier this project
-  uses) — no server involved. Genuinely live intraday quotes would need a different, likely paid,
-  data source; that's a separate future decision, not a blocker today.
+- **Markets** shows all four ETF benchmarks (SPY, QQQ, DIA, IWM) through TradingView without an API key.
+  These are ETF share prices in USD, not index levels. The widget labels its quote delays and
+  market status. It runs in a separate-origin iframe, away from Spotify/device storage.
+  It requires Internet access and cannot use Maison's local last-good quote cache.
+  The optional FMP provider remains available via `config.js`; its subscription must cover all symbols.
+  The previously exposed FMP key still needs revocation by its owner.
+- **Fishing** is accessible directly from the home navigation and shows complete major/minor
+  windows, peaks, moon phase/rating, sunrise/sunset and today/tomorrow schedules. The solunar
+  rating is an indication from traditional solunar theory, not a catch forecast.
 - **Calendar** is a private Google Calendar iframe embed (Path B in the brief) pointed at
   `config.js` → `calendar.calendarId` — nothing needed to be made public, it just needs the
   tablet's browser signed into that Google account.
@@ -74,7 +73,11 @@ and just needs feeds added to `config.js` → `camera.feeds` once hardware is pi
 **Spotify** (`js/spotify.js`) controls playback on whichever device is active in Kevin's Spotify
 account — a phone, a computer, or a Spotify Connect–enabled speaker — via the Spotify Web API.
 `config.js` → `spotify.clientId` is set; the one remaining step is a one-time login tap on the
-tablet itself (see `docs/install-guide.md`). Leave `clientId` blank to hide the tile entirely.
+tablet itself (see `docs/install-guide.md`). The user confirmed that tablet sign-in works after
+the October 11 redirect correction. **Commandes** opens device selection, volume, seeking,
+shuffle and repeat. Unavailable device capabilities are disabled. Leave `clientId` blank to hide the tile.
+
+Music grouping and Fire TV limitations: [music and device guide](docs/music-and-devices.md).
 
 ## Deployment
 

@@ -14,28 +14,25 @@ function startOfLocalDay(date) {
 // (highest altitude, moon overhead) and underfoot (lowest altitude, moon opposite the meridian) —
 // brief §5.2. A day is cheap enough to sample in full on a device that's otherwise idle.
 function findMoonExtrema(dayStart, lat, lon) {
-  let maxAlt = -Infinity;
-  let maxTime = null;
-  let minAlt = Infinity;
-  let minTime = null;
-  for (let m = 0; m < 24 * 60; m++) {
+  let maxTime = null, minTime = null;
+  const nextDay = new Date(dayStart);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const minutes = (nextDay - dayStart) / MINUTE_MS;
+  // Detect an actual local extremum, not an arbitrary midnight boundary.
+  for (let m = 0; m < minutes; m++) {
     const t = new Date(dayStart.getTime() + m * MINUTE_MS);
     const alt = getMoonPosition(t, lat, lon).altitude;
-    if (alt > maxAlt) {
-      maxAlt = alt;
-      maxTime = t;
-    }
-    if (alt < minAlt) {
-      minAlt = alt;
-      minTime = t;
-    }
+    const before = getMoonPosition(new Date(+t - MINUTE_MS), lat, lon).altitude;
+    const after = getMoonPosition(new Date(+t + MINUTE_MS), lat, lon).altitude;
+    if (alt > before && alt >= after) maxTime = t;
+    if (alt < before && alt <= after) minTime = t;
   }
   return { transit: maxTime, underfoot: minTime };
 }
 
 // Major periods (moon transit/underfoot, ±1h) and minor periods (moonrise/moonset, ±30min) for the
 // given calendar day, plus that day's sun times (used for the day-rating golden-hour bonus below).
-function computeDayPeriods(dayStart, lat, lon) {
+export function computeDayPeriods(dayStart, lat, lon) {
   const { transit, underfoot } = findMoonExtrema(dayStart, lat, lon);
   const moonTimes = getMoonTimes(dayStart, lat, lon);
   const sunTimes = getTimes(dayStart, lat, lon);
@@ -45,7 +42,8 @@ function computeDayPeriods(dayStart, lat, lon) {
   if (underfoot) periods.push({ kind: "major", label: "moon underfoot", center: underfoot, halfWidthMin: 60 });
   if (moonTimes.rise) periods.push({ kind: "minor", label: "moonrise", center: moonTimes.rise, halfWidthMin: 30 });
   if (moonTimes.set) periods.push({ kind: "minor", label: "moonset", center: moonTimes.set, halfWidthMin: 30 });
-  return { periods, sunTimes };
+  periods.sort((a, b) => a.center - b.center);
+  return { periods, sunTimes, moonTimes };
 }
 
 // Day rating, 0-4 stars. This is folk knowledge, not physics — tune freely:
@@ -122,22 +120,26 @@ function formatCountdown(ms) {
 
 function render(root, config, model) {
   const isFr = config.locale?.startsWith("fr");
-  const { fraction, waxing, periods, stars } = model;
+  const { fraction, waxing, periods, stars, sunTimes } = model;
+  const time = (date) => date && Number.isFinite(+date)
+    ? new Intl.DateTimeFormat(config.locale, { timeZone: config.timezone, hour: "2-digit", minute: "2-digit" }).format(date)
+    : "—";
 
   root.querySelector(".moon-disc").innerHTML = moonDiscSvg(fraction, waxing, 96);
   root.querySelector(".moon-phase-label").textContent =
     `${waxing ? (isFr ? "croissante" : "waxing") : isFr ? "décroissante" : "waning"} ${Math.round(fraction * 100)}%`;
   root.querySelector(".day-rating").textContent = starString(stars);
+  root.querySelector(".day-rating").setAttribute("aria-label", `${stars} sur 4 · indice solunaire`);
+  root.querySelector(".fishing-sun").textContent = `Soleil · lever ${time(sunTimes.sunrise)} · coucher ${time(sunTimes.sunset)}`;
   root.querySelector(".solunar-periods").innerHTML = periods
-    .slice(0, 4)
     .map((period) => {
       const label = periodKindLabel(period.label, isFr);
-      const time = new Intl.DateTimeFormat(config.locale, { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(period.center);
-      return `<span><strong>${label}</strong>${time}</span>`;
+      const start = new Date(+period.center - period.halfWidthMin * MINUTE_MS);
+      const end = new Date(+period.center + period.halfWidthMin * MINUTE_MS);
+      return `<div class="fishing-period"><div><strong>${period.kind === "major" ? "Majeure" : "Mineure"}</strong><span>${label} · pic ${time(period.center)}</span></div><time>${time(start)} – ${time(end)}</time></div>`;
     })
     .join("");
 
-  updateCountdown(root, config, periods);
 }
 
 // Cheap per-tick update: find the active or next period and render its label/countdown, without
@@ -180,13 +182,17 @@ function updateCountdown(root, config, periods) {
 export function initSolunar(config, root) {
   const { lat, lon } = config.location;
   let periods = [];
-  const toggle = root.querySelector(".moon-toggle");
-  const details = root.querySelector(".solunar-details");
-
-  toggle.addEventListener("click", () => {
-    const expanded = toggle.getAttribute("aria-expanded") !== "true";
-    toggle.setAttribute("aria-expanded", String(expanded));
-    details.hidden = !expanded;
+  let selectedDay = 0;
+  let models = [];
+  const buttons = root.querySelectorAll("[data-fishing-day]");
+  function showDay() {
+    render(root, config, models[selectedDay]);
+    for (const button of buttons) button.setAttribute("aria-pressed", String(Number(button.dataset.fishingDay) === selectedDay));
+    updateCountdown(root, config, periods);
+  }
+  for (const button of buttons) button.addEventListener("click", () => {
+    selectedDay = Number(button.dataset.fishingDay);
+    showDay();
   });
 
   function recompute() {
@@ -198,10 +204,14 @@ export function initSolunar(config, root) {
     const tomorrowResult = computeDayPeriods(tomorrow, lat, lon);
     periods = [...todayResult.periods, ...tomorrowResult.periods];
 
-    const illum = getMoonIllumination(new Date());
-    const stars = rateDay(illum.fraction, todayResult.periods, todayResult.sunTimes);
-
-    render(root, config, { fraction: illum.fraction, waxing: illum.waxing, periods, stars });
+    models = [todayResult, tomorrowResult].map((result, index) => {
+      const noon = new Date(index ? tomorrow : today);
+      noon.setHours(12);
+      const illum = getMoonIllumination(noon);
+      return { ...result, fraction: illum.fraction, waxing: illum.waxing,
+        stars: rateDay(illum.fraction, result.periods, result.sunTimes) };
+    });
+    showDay();
   }
 
   recompute();

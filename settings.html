@@ -42,7 +42,9 @@
     <a href="./">← Maison</a>
     <h1>Réglages du panneau</h1>
     <h2>Marchés</h2>
-    <p>Connectez votre compte Financial Modeling Prep sur cette tablette.</p>
+    <p>Les quatre indices sont suivis via leurs ETF (SPY, QQQ, DIA, IWM) dans TradingView. Aucune clé n’est nécessaire.</p>
+    <details><summary>Ancienne connexion FMP (option avancée)</summary>
+    <p>Utilisée seulement si config.js sélectionne le fournisseur FMP. Votre abonnement doit couvrir les quatre symboles.</p>
     <form id="market-settings">
       <label for="market-key">Clé API FMP</label
       ><input
@@ -58,6 +60,16 @@
       ><button type="button" id="remove-key">Déconnecter les marchés</button>
     </form>
     <p id="settings-status" role="status"></p>
+    </details>
+    <section id="spotify">
+      <h2>Connexion Spotify</h2>
+      <p>Si Spotify affiche « redirect URI » ou « no matching configuration », ajoutez exactement cette adresse dans Spotify Developer Dashboard → votre application → Settings → Redirect URIs :</p>
+      <p><code id="spotify-redirect"></code></p>
+      <p>Gardez le slash final. Enregistrez, puis revenez ici dans Fully Kiosk et touchez « Connecter Spotify ». La connexion reste propre à ce navigateur : se connecter sur un ordinateur ne connecte pas la tablette.</p>
+      <p><a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Ouvrir Spotify Developer Dashboard</a></p>
+      <p>Fully doit autoriser la navigation vers accounts.spotify.com et conserver les données du site. Ne videz pas le stockage après connexion.</p>
+      <p id="spotify-storage-status"></p>
+    </section>
     <h2>État de la tablette</h2>
     <p id="device-status"></p>
     <p>Adresse actuelle : <code id="current-url"></code></p>

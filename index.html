@@ -37,6 +37,8 @@
         <a class="wordmark" href="./">maison.</a
         ><span class="home-caption">LE QUOTIDIEN, TOUT SIMPLEMENT.</span>
         <div>
+          <button type="button" class="panel-shortcut" data-panel="tile-solunar" aria-controls="tile-side">Pêche</button>
+          <button type="button" class="panel-shortcut" data-panel="tile-markets" aria-controls="tile-side">Marchés</button>
           <button type="button" id="theme-toggle" aria-label="Changer le thème">
             Thème clair</button
           ><button
@@ -122,26 +124,20 @@
         <div class="section-heading explorer-heading">
           <div>
             <span class="eyebrow">MAISON</span>
-            <h2 id="explorer-title">Un peu plus loin</h2>
+            <h2 id="explorer-title">Pêche & marchés</h2>
           </div>
           <button id="explorer-close" type="button">Fermer</button>
         </div>
         <div class="explorer-grid">
           <section id="tile-solunar">
             <h2>Pêche & lune</h2>
-            <button
-              class="moon-toggle"
-              type="button"
-              aria-expanded="false"
-              aria-label="Afficher les détails de pêche"
-            >
-              <span class="moon-disc"></span>
-            </button>
-            <div class="solunar-details" hidden>
-              <div class="moon-phase-label"></div>
+            <div class="fishing-summary"><span class="moon-disc" aria-hidden="true"></span><div><div class="moon-phase-label"></div><div class="day-rating" aria-label="Indice solunaire"></div></div></div>
+            <div class="solunar-details">
               <div class="next-period"></div>
-              <div class="day-rating"></div>
+              <div class="fishing-sun"></div>
+              <div class="fishing-day-controls" aria-label="Jour de pêche"><button type="button" data-fishing-day="0" aria-pressed="true">Aujourd’hui</button><button type="button" data-fishing-day="1" aria-pressed="false">Demain</button></div>
               <div class="solunar-periods"></div>
+              <p class="fishing-note">Heures locales · fenêtres solunaires indicatives, sans garantie de prises.</p>
             </div>
           </section>
           <section id="tile-markets">

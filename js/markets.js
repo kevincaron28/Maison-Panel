@@ -138,6 +138,42 @@ function render(root, config, quotes, meta) {
 }
 
 export function initMarkets(config, root) {
+  if (config.markets.provider === "tradingview") {
+    const frame = document.createElement("iframe");
+    frame.title = "S&P 500, Nasdaq 100, Dow Jones et Russell 2000 — ETF par TradingView";
+    // Provider-generated embed URL, hosted on a different origin. No third-party
+    // scripts run in Maison's origin or gain access to Spotify/device storage.
+    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox");
+    const widget = {
+      colorTheme: "dark", dateRange: "1M", showChart: false, width: "100%", height: 310,
+      isTransparent: false, showSymbolLogo: false,
+      tabs: [{ title: "Indices · ETF", symbols: [
+        { s: "AMEX:SPY", d: "S&P 500 · SPY" },
+        { s: "NASDAQ:QQQ", d: "Nasdaq 100 · QQQ" },
+        { s: "AMEX:DIA", d: "Dow Jones · DIA" },
+        { s: "AMEX:IWM", d: "Russell 2000 · IWM" },
+      ] }],
+      utm_source: location.hostname, utm_medium: "widget_new", utm_campaign: "market-overview",
+    };
+    frame.src = "https://www.tradingview-widget.com/embed-widget/market-overview/?locale=fr#" + encodeURIComponent(JSON.stringify(widget));
+    frame.className = "markets-widget";
+    root.querySelector(".market-list").replaceChildren(frame);
+    const attribution = document.createElement("a");
+    attribution.href = "https://www.tradingview.com/markets/";
+    attribution.target = "_blank";
+    attribution.rel = "noopener nofollow";
+    attribution.textContent = "Marchés par TradingView";
+    root.querySelector(".market-list").appendChild(attribution);
+    root.querySelector(".market-toggle").hidden = true;
+    root.querySelector(".market-note").textContent = "SPY · QQQ · DIA · IWM : ETF suivant les indices, cotés en USD. Cours et délais indiqués par TradingView. Connexion Internet requise.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "market-retry";
+    retry.textContent = "Recharger les marchés";
+    retry.addEventListener("click", () => { frame.src = frame.src; });
+    root.appendChild(retry);
+    return;
+  }
   let interval = config.refresh.markets;
   let current = loadCache(CACHE_KEY);
   let currentMeta = {
@@ -155,7 +191,7 @@ export function initMarkets(config, root) {
     currentMeta = meta;
     render(root, config, quotes, meta);
   }
-  root.dataset.marketsExpanded = "false";
+  root.dataset.marketsExpanded = "true";
   root.querySelector(".market-toggle").addEventListener("click", () => {
     root.dataset.marketsExpanded =
       root.dataset.marketsExpanded === "true" ? "false" : "true";

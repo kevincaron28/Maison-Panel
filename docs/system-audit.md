@@ -1,5 +1,24 @@
 # Maison Panel system audit — October 11, 2026
 
+## Release correction after tablet feedback
+
+The first redesign shipped at `9df99de`, but hid fishing behind an extra disclosure and left the
+market provider limitation unresolved. The follow-up restores direct navigation, all fishing
+details and four visible market benchmarks. TradingView's isolated widget returned prices for
+SPY, QQQ, DIA and IWM in browser verification; it is explicitly labeled as ETF tracking and
+requires Internet (no offline quote cache). The optional FMP provider is retained.
+
+Spotify's actual registered callback was inspected after user sign-in: it still used the obsolete
+workers.dev domain. The correct production root replaced it and persisted after refresh. The
+user subsequently confirmed Spotify works on Fully Kiosk. Client code also normalizes callbacks,
+retains refresh tokens on configuration/network errors and retries an expired access token once.
+
+Expanded music controls add device selection, volume, seeking, shuffle and repeat with capability
+checks. Automated tests exercise request payloads and token recovery; household playback is not
+changed during simulated control tests. Remaining physical checks: the new controls on each real
+speaker, Google group discovery, an overnight kiosk run and a Wi-Fi interruption on the tablet.
+These are not claimed as completed by desktop tests.
+
 ## Confirmed cause of the tablet outage
 
 The README and install guide pointed to `maison-panel.kevincaron28.workers.dev`.

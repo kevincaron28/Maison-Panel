@@ -1,0 +1,13 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Commandes musicales · aperçu de démonstration</title><link rel="stylesheet" href="../css/calm.css"></head><body>
+<div id="panel"><p>Démonstration des commandes · données fictives · aucun appareil connecté</p><footer id="demo-music"><button id="demo-open">Commandes</button></footer></div>
+<script type="module">
+import { createMusicControls } from '../js/music-controls.js';
+const state = {status:'playing',track:{name:'Une soirée à la maison',artists:'Exemple de titre · démonstration'},deviceName:'Groupe Maison · démo',volumePercent:35,supportsVolume:true,isPlaying:true,shuffle:false,repeat:'off',durationMs:240000,progressMs:62000,disallows:{}};
+const update = (changes) => {Object.assign(state,changes); ui.update(state);};
+const ui = createMusicControls(document.getElementById('demo-music'),{
+  play:()=>update({isPlaying:true}),pause:()=>update({isPlaying:false}),previous:()=>update({progressMs:0}),next:()=>update({progressMs:0}),
+  seek:value=>update({progressMs:value}),setVolume:value=>update({volumePercent:value}),shuffle:()=>update({shuffle:!state.shuffle}),repeat:()=>update({repeat:{off:'context',context:'track',track:'off'}[state.repeat]}),
+  transfer:()=>update({feedback:'Simulation seulement — aucun appareil commandé.'}),devices:()=>ui.devices([{id:'demo',name:'Groupe Maison · démo',is_active:true}])
+});
+ui.update(state); document.getElementById('demo-open').addEventListener('click',()=>ui.open()); ui.open();
+</script></body></html>

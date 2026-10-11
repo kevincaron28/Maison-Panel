@@ -28,17 +28,29 @@ export function initDashboard(config, root) {
       /* session-only theme */
     }
   });
-  function toggle(open) {
+  let returnFocus = opener;
+  function toggle(open, trigger = opener) {
+    if (open) returnFocus = trigger;
     explorer.hidden = !open;
+    if (open) explorer.scrollTop = 0;
     opener.setAttribute("aria-expanded", String(open));
     // Inert when supported; keyboard loop below also supports older WebViews.
     for (const selector of [".home-nav", "#tile-main", "#tile-spotify"]) {
       const sibling = root.querySelector(selector);
       if (sibling) sibling.inert = open;
     }
-    (open ? closer : opener).focus();
+    (open ? closer : returnFocus).focus();
   }
   opener.addEventListener("click", () => toggle(true));
+  for (const button of root.querySelectorAll("[data-panel]")) {
+    button.addEventListener("click", () => {
+      toggle(true, button);
+      const target = document.getElementById(button.dataset.panel);
+      target.setAttribute("tabindex", "-1");
+      target.focus({ preventScroll: true });
+      if (window.innerWidth <= 850) target.scrollIntoView?.({ block: "start" });
+    });
+  }
   closer.addEventListener("click", () => toggle(false));
   explorer.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
