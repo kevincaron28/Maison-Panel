@@ -9,9 +9,13 @@ export function initCalendar(config, root) {
   if (mode !== "embed") {
     // Path A (public calendar + REST API) isn't built — see docs/project-brief.md §5.3 for the
     // endpoint shape if you switch config.calendar.mode to "api" later.
+    root.querySelector(".calendar-embed-container").textContent = "Mode de calendrier non pris en charge. Utilisez le mode embed.";
     return;
   }
-  if (!calendarId) return; // nothing configured yet — stay quiet rather than show a broken embed
+  if (!calendarId) {
+    root.querySelector(".calendar-embed-container").textContent = "Ajoutez un calendrier dans la configuration.";
+    return;
+  }
 
   const params = new URLSearchParams({
     src: calendarId,
@@ -31,6 +35,7 @@ export function initCalendar(config, root) {
 
   const iframe = document.createElement("iframe");
   iframe.src = `https://calendar.google.com/calendar/embed?${params}`;
+  iframe.title = "Calendrier de la maison";
   iframe.setAttribute("frameborder", "0");
   iframe.setAttribute("scrolling", "no");
   root.querySelector(".calendar-embed-container").appendChild(iframe);

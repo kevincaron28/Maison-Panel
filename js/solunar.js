@@ -53,8 +53,8 @@ function computeDayPeriods(dayStart, lat, lon) {
 //     when solunar theory says fish activity peaks; a quarter moon (fraction 0.5) scores lowest.
 //   - +1 star, capped at 4, if a major period's window overlaps sunrise or sunset — the classic
 //     "dawn/dusk feed" bonus anglers already watch for.
-function rateDay(fraction, periods, sunTimes) {
-  const proximity = 1 - Math.abs(fraction - 0.5) * 2; // 0 at quarter, 1 at new/full
+export function rateDay(fraction, periods, sunTimes) {
+  const proximity = Math.abs(fraction - 0.5) * 2; // 0 at quarter, 1 at new/full
   let stars = Math.round(proximity * 4);
 
   const goldenMoments = [sunTimes.sunrise, sunTimes.sunset].filter(Boolean);
@@ -191,7 +191,8 @@ export function initSolunar(config, root) {
 
   function recompute() {
     const today = startOfLocalDay(new Date());
-    const tomorrow = startOfLocalDay(new Date(today.getTime() + 24 * 60 * MINUTE_MS));
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     const todayResult = computeDayPeriods(today, lat, lon);
     const tomorrowResult = computeDayPeriods(tomorrow, lat, lon);

@@ -1,5 +1,9 @@
 name = "maison-panel"
 compatibility_date = "2026-09-08"
+workers_dev = true
+
+[build]
+command = "node scripts/package.mjs"
 
 [assets]
-directory = "."
+directory = "./dist"

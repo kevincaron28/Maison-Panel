@@ -6,7 +6,10 @@ const PREFIX = "maison-panel:";
 export function loadCache(key) {
   try {
     const raw = localStorage.getItem(PREFIX + key);
-    return raw ? JSON.parse(raw) : null;
+    const cached = raw ? JSON.parse(raw) : null;
+    return cached && cached.data != null && Number.isFinite(cached.fetchedAt)
+      ? cached
+      : null;
   } catch {
     return null; // corrupt or inaccessible storage — treat as no cache, never throw
   }
@@ -16,7 +19,7 @@ export function saveCache(key, data) {
   try {
     localStorage.setItem(
       PREFIX + key,
-      JSON.stringify({ data, fetchedAt: Date.now() })
+      JSON.stringify({ data, fetchedAt: Date.now() }),
     );
   } catch {
     // storage full/unavailable — the tile still has the in-memory value this tick
@@ -37,31 +40,55 @@ export function createPoller({ key, intervalMs, fetcher, onData, onError }) {
   const MAX_INTERVAL_MS = 30 * 60 * 1000;
   let currentInterval = intervalMs;
   let timer = null;
+  let running = false;
+  let inFlight = false;
+  let lastGood = loadCache(key);
+
+  function deliver(cached, stale) {
+    try {
+      onData(cached.data, { stale, fetchedAt: cached.fetchedAt });
+    } catch (err) {
+      report(err);
+    }
+  }
+  function report(err) {
+    try {
+      onError?.(err);
+    } catch {
+      /* a status renderer must not break scheduling */
+    }
+  }
 
   async function tick() {
+    if (!running || inFlight) return;
+    inFlight = true;
     try {
       const data = await fetcher();
+      if (!running) return;
+      lastGood = { data, fetchedAt: Date.now() };
       saveCache(key, data);
       currentInterval = intervalMs;
-      onData(data, { stale: false, fetchedAt: Date.now() });
+      deliver(lastGood, false);
     } catch (err) {
-      onError?.(err);
-      const cached = loadCache(key);
-      if (cached) {
-        onData(cached.data, { stale: true, fetchedAt: cached.fetchedAt });
-      }
+      if (!running) return;
+      report(err);
+      if (lastGood) deliver(lastGood, true);
       currentInterval = Math.min(currentInterval * 2, MAX_INTERVAL_MS);
+    } finally {
+      inFlight = false;
+      if (running) timer = setTimeout(tick, currentInterval);
     }
-    timer = setTimeout(tick, currentInterval);
   }
 
   function start() {
-    const cached = loadCache(key);
-    if (cached) onData(cached.data, { stale: true, fetchedAt: cached.fetchedAt });
+    if (running) return;
+    running = true;
+    if (lastGood) deliver(lastGood, true);
     tick();
   }
 
   function stop() {
+    running = false;
     if (timer) clearTimeout(timer);
   }
 

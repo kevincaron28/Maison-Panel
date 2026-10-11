@@ -7,7 +7,7 @@ export function initClock(config, root) {
   const timeFmt = new Intl.DateTimeFormat(config.locale, {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
     timeZone: config.timezone,
   });
   const dateFmt = new Intl.DateTimeFormat(config.locale, {
@@ -19,7 +19,8 @@ export function initClock(config, root) {
 
   function render() {
     const now = new Date();
-    timeEl.textContent = timeFmt.format(now);
+    const parts = timeFmt.formatToParts(now);
+    timeEl.textContent = `${parts.find((p) => p.type === "hour").value}:${parts.find((p) => p.type === "minute").value}`;
     dateEl.textContent = dateFmt.format(now);
   }
 

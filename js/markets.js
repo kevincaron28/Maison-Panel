@@ -7,6 +7,7 @@
 // end-of-day only (confirmed via their own docs), so that close is the freshest data there is
 // regardless of when it's fetched.
 import { loadCache, saveCache, formatUpdatedAt } from "./store.js";
+import { fetchJson } from "./network.js";
 
 const MINUTE_MS = 60 * 1000;
 const MAX_INTERVAL_MS = 30 * MINUTE_MS;
@@ -30,7 +31,7 @@ function isMarketOpen(date, marketHours) {
       weekday: "short",
     })
       .formatToParts(date)
-      .map((p) => [p.type, p.value])
+      .map((p) => [p.type, p.value]),
   );
   const isWeekday = !["Sat", "Sun"].includes(parts.weekday);
   const minutesNow = Number(parts.hour) * 60 + Number(parts.minute);
@@ -39,16 +40,22 @@ function isMarketOpen(date, marketHours) {
   return isWeekday && minutesNow >= openMin && minutesNow < closeMin;
 }
 
-async function fetchQuote(symbol, key) {
+export async function fetchQuote(symbol, key) {
   const url = new URL("https://financialmodelingprep.com/stable/quote");
   url.searchParams.set("symbol", symbol);
   url.searchParams.set("apikey", key);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`FMP ${symbol} ${res.status}`);
-  const data = await res.json();
+  const data = await fetchJson(url);
   const quote = Array.isArray(data) ? data[0] : data;
-  if (!quote) throw new Error(`FMP ${symbol}: empty response`);
-  return quote;
+  if (
+    !quote ||
+    ![quote.price, quote.change, quote.changePercentage].every(
+      (value) =>
+        value !== null && value !== "" && Number.isFinite(Number(value)),
+    )
+  ) {
+    throw new Error(`FMP ${symbol}: invalid quote`);
+  }
+  return { ...quote, _fetchedAt: Date.now() };
 }
 
 // One symbol at a time, awaited in sequence, against FMP's single-symbol /stable/quote endpoint —
@@ -85,7 +92,9 @@ function render(root, config, quotes, meta) {
     const q = quotes[s.sym];
     const row = document.createElement("div");
     row.className = `market-row${index > 0 && !expanded ? " market-row-secondary" : ""}${
-      q ? ` ${q.change >= 0 ? "market-up" : "market-down"}` : " market-unavailable"
+      q
+        ? ` ${q.change >= 0 ? "market-up" : "market-down"}`
+        : " market-unavailable"
     }`;
     row.innerHTML = q
       ? `<span class="market-label">${s.label}</span>` +
@@ -112,13 +121,17 @@ function render(root, config, quotes, meta) {
       : "Show more";
 
   const note = root.querySelector(".market-note");
-  const missingCount = config.markets.symbols.filter((s) => !quotes[s.sym]).length;
-  if (missingCount > 0) {
+  const missingCount = config.markets.symbols.filter(
+    (s) => !quotes[s.sym],
+  ).length;
+  if (meta.stale) {
+    note.textContent = `${isFr ? "Données anciennes" : "Stale data"} · ${formatUpdatedAt(meta.fetchedAt)}`;
+  } else if (missingCount > 0) {
     note.textContent = isFr
       ? `${missingCount} indice${missingCount > 1 ? "s" : ""} indisponible${missingCount > 1 ? "s" : ""}`
       : `${missingCount} index${missingCount > 1 ? "es" : ""} unavailable`;
   } else if (meta.marketOpen) {
-    note.textContent = "";
+    note.textContent = isFr ? "Données différées" : "Delayed quotes";
   } else {
     note.textContent = `${isFr ? "marché fermé" : "market closed"} — ${formatUpdatedAt(meta.fetchedAt)}`;
   }
@@ -126,18 +139,41 @@ function render(root, config, quotes, meta) {
 
 export function initMarkets(config, root) {
   let interval = config.refresh.markets;
+  let current = loadCache(CACHE_KEY);
+  let currentMeta = {
+    marketOpen: false,
+    stale: true,
+    fetchedAt: current?.fetchedAt || Date.now(),
+  };
+  let key = config.markets.fmpKey;
+  try {
+    key = localStorage.getItem("maison-panel:fmp-key") || key;
+  } catch {
+    /* storage blocked */
+  }
+  function show(quotes, meta) {
+    currentMeta = meta;
+    render(root, config, quotes, meta);
+  }
   root.dataset.marketsExpanded = "false";
   root.querySelector(".market-toggle").addEventListener("click", () => {
-    root.dataset.marketsExpanded = root.dataset.marketsExpanded === "true" ? "false" : "true";
-    const cached = loadCache(CACHE_KEY);
-    if (cached) render(root, config, cached.data, { marketOpen: false, fetchedAt: cached.fetchedAt });
+    root.dataset.marketsExpanded =
+      root.dataset.marketsExpanded === "true" ? "false" : "true";
+    show(current?.data || {}, currentMeta);
   });
+  show(current?.data || {}, currentMeta);
+  if (!key) {
+    root.querySelector(".market-note").textContent =
+      "Marchés non connectés · ajoutez une clé dans Réglages";
+    return;
+  }
 
   async function tick() {
     const now = new Date();
     const open = isMarketOpen(now, config.markets.marketHours);
-    const hasCredentials = Boolean(config.markets.fmpKey);
-    const cached = loadCache(CACHE_KEY);
+    const hasCredentials = Boolean(key);
+    const cached = current;
+    let failed = false;
 
     // Fetch during market hours (to catch the close as it lands), or any time there's no cache
     // yet at all — otherwise a fresh install loading outside 09:30-16:00 ET would show nothing
@@ -145,21 +181,36 @@ export function initMarkets(config, root) {
     // of the clock.
     if (hasCredentials && (open || !cached)) {
       try {
-        const quotes = await fetchAllQuotes(config.markets.symbols, config.markets.fmpKey);
-        if (Object.keys(quotes).length === 0) throw new Error("no quotes returned");
-        saveCache(CACHE_KEY, quotes);
+        const quotes = await fetchAllQuotes(config.markets.symbols, key);
+        if (Object.keys(quotes).length === 0)
+          throw new Error("no quotes returned");
+        const merged = { ...cached?.data, ...quotes };
+        current = { data: merged, fetchedAt: Date.now() };
+        saveCache(CACHE_KEY, merged);
         interval = config.refresh.markets;
-        render(root, config, quotes, { marketOpen: open, fetchedAt: Date.now() });
+        const stale = config.markets.symbols.some(
+          (s) => merged[s.sym] && !quotes[s.sym],
+        );
+        show(merged, {
+          marketOpen: open,
+          stale,
+          fetchedAt: stale ? cached.fetchedAt : current.fetchedAt,
+        });
       } catch (err) {
         console.warn("[markets]", err);
         interval = Math.min(interval * 2, MAX_INTERVAL_MS);
-        if (cached) render(root, config, cached.data, { marketOpen: false, fetchedAt: cached.fetchedAt });
+        failed = true;
+        show(cached?.data || {}, {
+          marketOpen: open,
+          stale: true,
+          fetchedAt: cached?.fetchedAt || Date.now(),
+        });
       }
     } else if (cached) {
-      render(root, config, cached.data, { marketOpen: false, fetchedAt: cached.fetchedAt });
+      show(cached.data, { ...currentMeta, marketOpen: false });
     }
 
-    setTimeout(tick, open ? interval : CLOSED_CHECK_MS);
+    setTimeout(tick, open || failed ? interval : CLOSED_CHECK_MS);
   }
 
   tick();

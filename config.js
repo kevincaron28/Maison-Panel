@@ -2,6 +2,7 @@
 // section means and why (§4 config, §5 tile specs, §9 build order / open questions).
 
 export const CONFIG = {
+  ui: { defaultTheme: "night", hourlyCount: 5, hourlyStep: 3 },
   location: { lat: 45.167, lon: -73.517, label: "Maison" }, // Sherrington, QC (J0L 2N0) — brief §11.5 answered
   timezone: "America/Toronto",
   locale: "fr-CA", // TODO: confirm French vs English on the panel (brief §11.3)
@@ -16,7 +17,7 @@ export const CONFIG = {
   },
 
   markets: {
-    fmpKey: "74x4tq9TNGGBWIzhgEae7rHWHw6RPffq", // direct client-side fetch, one symbol at a time — no server involved
+    fmpKey: "", // Enter a replacement key per device in settings.html. Never commit credentials.
     marketHours: { startHourEt: 9, startMinuteEt: 30, endHourEt: 16 },
     symbols: [
       { sym: "SPY", label: "S&P 500" },

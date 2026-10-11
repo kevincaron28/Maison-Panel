@@ -11,26 +11,37 @@
 const AUTH_URL = "https://accounts.spotify.com/authorize";
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const API_BASE = "https://api.spotify.com/v1/me/player";
-const SCOPES = "user-read-playback-state user-modify-playback-state user-read-currently-playing";
+const SCOPES =
+  "user-read-playback-state user-modify-playback-state user-read-currently-playing";
 const TOKEN_KEY = "maison-panel:spotify-tokens";
 const VERIFIER_KEY = "spotify-pkce-verifier";
 const STATE_KEY = "spotify-pkce-state";
+import { fetchJson } from "./network.js";
+let refreshInFlight = null;
 
 function redirectUri() {
   return `${location.origin}${location.pathname}`;
 }
 
 function randomString(length) {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
   const bytes = crypto.getRandomValues(new Uint8Array(length));
   return Array.from(bytes, (b) => chars[b % chars.length]).join("");
 }
 
 async function sha256Base64Url(input) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(input),
+  );
   let binary = "";
-  for (const byte of new Uint8Array(digest)) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  for (const byte of new Uint8Array(digest))
+    binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 async function beginLogin(clientId) {
@@ -68,7 +79,11 @@ function saveTokens(tokens) {
 }
 
 function clearTokens() {
-  localStorage.removeItem(TOKEN_KEY);
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage blocked */
+  }
 }
 
 async function exchangeCodeForTokens(clientId, code) {
@@ -81,13 +96,11 @@ async function exchangeCodeForTokens(clientId, code) {
     client_id: clientId,
     code_verifier: verifier,
   });
-  const res = await fetch(TOKEN_URL, {
+  const data = await fetchJson(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!res.ok) throw new Error(`spotify token exchange ${res.status}`);
-  const data = await res.json();
   saveTokens({
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
@@ -101,13 +114,11 @@ async function refreshTokens(clientId, tokens) {
     refresh_token: tokens.refreshToken,
     client_id: clientId,
   });
-  const res = await fetch(TOKEN_URL, {
+  const data = await fetchJson(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!res.ok) throw new Error(`spotify token refresh ${res.status}`);
-  const data = await res.json();
   const next = {
     accessToken: data.access_token,
     // Spotify doesn't always rotate the refresh token — keep the old one if a new one isn't sent.
@@ -140,16 +151,22 @@ async function consumeAuthRedirect(clientId) {
   }
 }
 
-async function getValidAccessToken(clientId) {
+export async function getValidAccessToken(clientId) {
   let tokens = loadTokens();
   if (!tokens) return null;
   if (Date.now() > tokens.expiresAt - 60 * 1000) {
     try {
-      tokens = await refreshTokens(clientId, tokens);
+      if (!refreshInFlight)
+        refreshInFlight = refreshTokens(clientId, tokens).finally(() => {
+          refreshInFlight = null;
+        });
+      tokens = await refreshInFlight;
     } catch (err) {
-      console.warn("[spotify] refresh failed, signing out", err);
-      clearTokens();
-      return null;
+      if (err.status === 400 || err.status === 401) {
+        clearTokens();
+        return null;
+      }
+      throw err; // transient outages must not delete a reusable refresh token
     }
   }
   return tokens.accessToken;
@@ -157,13 +174,24 @@ async function getValidAccessToken(clientId) {
 
 async function apiRequest(method, path, accessToken, params) {
   const url = new URL(API_BASE + path);
-  if (params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url, { method, headers: { Authorization: `Bearer ${accessToken}` } });
-  if (res.status === 401) throw new Error("unauthorized");
-  if (res.status === 204 || res.status === 202) return null;
-  if (!res.ok) throw new Error(`spotify api ${method} ${path} ${res.status}`);
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
+  if (params)
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(url, {
+      method,
+      signal: controller.signal,
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.status === 401) throw new Error("unauthorized");
+    if (res.status === 204 || res.status === 202) return null;
+    if (!res.ok) throw new Error(`spotify api ${method} ${path} ${res.status}`);
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function render(root, state, actions) {
@@ -180,7 +208,7 @@ function render(root, state, actions) {
   }
 
   if (state.status === "idle") {
-    body.innerHTML = `<div class="spotify-idle">Rien en lecture</div>`;
+    body.innerHTML = `<div class="spotify-idle">Lancez Spotify sur votre téléphone ou votre enceinte pour utiliser les commandes.</div>`;
     return;
   }
 
@@ -189,7 +217,8 @@ function render(root, state, actions) {
   meta.innerHTML =
     `<div class="spotify-track"></div>` + `<div class="spotify-artist"></div>`;
   meta.querySelector(".spotify-track").textContent = state.track.name;
-  meta.querySelector(".spotify-artist").textContent = `${state.track.artists} · ${state.deviceName}`;
+  meta.querySelector(".spotify-artist").textContent =
+    `${state.track.artists} · ${state.deviceName}`;
   body.appendChild(meta);
 
   const controls = document.createElement("div");
@@ -205,7 +234,10 @@ function render(root, state, actions) {
   playBtn.className = "spotify-btn spotify-btn-primary";
   playBtn.setAttribute("aria-label", state.isPlaying ? "Pause" : "Lecture");
   playBtn.textContent = state.isPlaying ? "⏸" : "▶";
-  playBtn.addEventListener("click", state.isPlaying ? actions.pause : actions.play);
+  playBtn.addEventListener(
+    "click",
+    state.isPlaying ? actions.pause : actions.play,
+  );
 
   const nextBtn = document.createElement("button");
   nextBtn.className = "spotify-btn";
@@ -246,34 +278,48 @@ export function initSpotify(config, root) {
   const state = { status: "signed-out", volumePercent: 50 };
 
   async function pollNowPlaying() {
-    const token = await getValidAccessToken(cfg.clientId);
-    if (!token) {
-      state.status = "signed-out";
-      render(root, state, actions);
-      return;
-    }
     try {
+      const token = await getValidAccessToken(cfg.clientId);
+      if (!token) {
+        state.status = "signed-out";
+        render(root, state, actions);
+        return;
+      }
       const data = await apiRequest("GET", "", token);
       if (!data || !data.item) {
         state.status = "idle";
       } else {
         state.status = "playing";
         state.isPlaying = data.is_playing;
-        state.track = { name: data.item.name, artists: data.item.artists.map((a) => a.name).join(", ") };
+        state.track = {
+          name: data.item.name,
+          artists:
+            (data.item.artists || []).map((a) => a.name).join(", ") ||
+            data.item.show?.name ||
+            "Spotify",
+        };
         state.deviceName = data.device?.name || "";
-        if (typeof data.device?.volume_percent === "number") state.volumePercent = data.device.volume_percent;
+        if (typeof data.device?.volume_percent === "number")
+          state.volumePercent = data.device.volume_percent;
       }
       render(root, state, actions);
+      root.querySelector(".spotify-status").textContent = "";
     } catch (err) {
       console.warn("[spotify] now-playing poll failed", err);
+      if (err.message === "unauthorized") {
+        const tokens = loadTokens();
+        if (tokens) saveTokens({ ...tokens, expiresAt: 0 });
+      }
+      root.querySelector(".spotify-status").textContent =
+        "Spotify indisponible · nouvel essai automatique";
       // leave the last-rendered state on screen — one failed poll shouldn't blank the tile
     }
   }
 
   async function act(run) {
-    const token = await getValidAccessToken(cfg.clientId);
-    if (!token) return;
     try {
+      const token = await getValidAccessToken(cfg.clientId);
+      if (!token) return;
       await run(token);
     } catch (err) {
       console.warn("[spotify] control action failed", err);
@@ -282,7 +328,11 @@ export function initSpotify(config, root) {
   }
 
   const actions = {
-    login: () => beginLogin(cfg.clientId),
+    login: () =>
+      beginLogin(cfg.clientId).catch(() => {
+        root.querySelector(".spotify-status").textContent =
+          "Connexion impossible. Vérifiez HTTPS et le stockage du navigateur.";
+      }),
     play: () => act((token) => apiRequest("PUT", "/play", token)),
     pause: () => act((token) => apiRequest("PUT", "/pause", token)),
     previous: () => act((token) => apiRequest("POST", "/previous", token)),
@@ -301,7 +351,12 @@ export function initSpotify(config, root) {
   }
 
   (async () => {
-    await consumeAuthRedirect(cfg.clientId);
+    render(root, state, actions);
+    try {
+      await consumeAuthRedirect(cfg.clientId);
+    } catch (err) {
+      console.warn("[spotify] login unavailable", err);
+    }
     tick();
   })();
 }

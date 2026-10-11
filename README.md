@@ -9,7 +9,7 @@ Repo-specific dev notes: [`CLAUDE.md`](CLAUDE.md). Getting this onto an actual t
 
 ## Stack
 
-Plain HTML + CSS + vanilla JS modules. No framework, no build step, no bundler, no server. Deployed
+Plain HTML + CSS + vanilla JS modules. No framework, no transpilation, no bundler, no server. Deployed
 as a static site (Cloudflare Workers with static assets); the tablet's browser calls every API
 directly (Open-Meteo, FMP, Google Calendar). Solunar/fishing timing is local astronomy math via a
 vendored copy of [SunCalc](https://github.com/mourner/suncalc) — no network call for that tile.
@@ -22,7 +22,7 @@ used to have — is a cloud API call the browser can make directly, no local pro
 ## Running locally
 
 ```
-npx serve .
+npm run serve
 ```
 
 (Any static file server works. Do not open `index.html` via `file://` — that origin breaks CORS.)
@@ -40,15 +40,24 @@ Android navigation controls hidden before changing the T13 breakpoint.
 
 ## Configuration
 
+The default interface is **Nuit calme**, with the welcome **Bienvenue, famille Caron.**
+`config.js` → `ui` controls the default theme and compact hourly forecast. A previously selected
+theme is remembered per browser. See [layout research](docs/layout-research.md) for the design
+comparison, rationale and remaining private-agenda limitation.
+
 Everything you'd tune — location, units, refresh intervals, API keys, market symbols, camera feeds —
 lives in [`config.js`](config.js). That's the only file meant to be hand-edited day to day.
 
 ## Status
 
-Phases 1–4 (weather, solunar/fishing, calendar, markets) are built, configured, and live on
-[`maison-panel.kevincaron28.workers.dev`](https://maison-panel.kevincaron28.workers.dev):
+The existing production dashboard is hosted at
+[`maison-panel.kcaron.workers.dev`](https://maison-panel.kcaron.workers.dev):
 
-- **Markets** uses Financial Modeling Prep (`config.js` → `markets.fmpKey`), not Finnhub — the free
+- **Markets** uses Financial Modeling Prep. Set a replacement key per tablet via **Réglages**;
+  the previously committed key must be revoked at FMP. Keys entered here stay out of Git, but are
+  still browser credentials and are sent to FMP. During the October 11 audit, QQQ, DIA and IWM
+  returned HTTP 402; SPY returned a quote. A code change cannot unlock provider entitlements.
+  The free
   tier is end-of-day only, same limitation Finnhub's free tier turned out to have. It fetches each
   symbol individually and sequentially straight from the browser (FMP's multi-symbol batch-quote
   endpoint is paid-plan-only and returns a "Restricted Endpoint" error on the free tier this project
@@ -69,5 +78,13 @@ tablet itself (see `docs/install-guide.md`). Leave `clientId` blank to hide the 
 
 ## Deployment
 
-Push to the connected branch; Cloudflare (Workers with static assets, via `wrangler.toml`) deploys
-the repo root as static files — no build command, no server, nothing else to run.
+Cloudflare deploys `main` using `npx wrangler deploy`. Wrangler first runs
+`node scripts/package.mjs`, which copies only runtime assets into `dist/`. This packaging step
+does not compile JavaScript; it prevents docs, tests, design previews and dependencies from being
+published as website files.
+
+Before release: `npm ci`, `npm test`, `npm run package`. A local design comparison is available at
+`http://127.0.0.1:8080/design/` while the preview server runs. Design previews use sample data.
+
+See [the audit and upgrade plan](docs/system-audit.md) for confirmed findings, remaining account
+and tablet checks, and rollout steps. Local fixes are not deployed until their branch is released.

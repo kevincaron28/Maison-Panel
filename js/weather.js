@@ -1,5 +1,6 @@
 // Weather tile — Open-Meteo (no key, CORS: *). Brief §5.1.
 import { createPoller, formatUpdatedAt } from "./store.js";
+import { fetchJson } from "./network.js";
 
 const WEATHER_CACHE_KEY = "weather-v2";
 
@@ -15,12 +16,20 @@ const WMO = {
   53: { fr: "bruine", en: "drizzle", icon: "drizzle" },
   55: { fr: "bruine dense", en: "dense drizzle", icon: "drizzle" },
   56: { fr: "bruine verglaçante", en: "freezing drizzle", icon: "drizzle" },
-  57: { fr: "bruine verglaçante dense", en: "dense freezing drizzle", icon: "drizzle" },
+  57: {
+    fr: "bruine verglaçante dense",
+    en: "dense freezing drizzle",
+    icon: "drizzle",
+  },
   61: { fr: "pluie légère", en: "light rain", icon: "rain" },
   63: { fr: "pluie", en: "rain", icon: "rain" },
   65: { fr: "forte pluie", en: "heavy rain", icon: "rain" },
   66: { fr: "pluie verglaçante", en: "freezing rain", icon: "rain" },
-  67: { fr: "forte pluie verglaçante", en: "heavy freezing rain", icon: "rain" },
+  67: {
+    fr: "forte pluie verglaçante",
+    en: "heavy freezing rain",
+    icon: "rain",
+  },
   71: { fr: "neige légère", en: "light snow", icon: "snow" },
   73: { fr: "neige", en: "snow", icon: "snow" },
   75: { fr: "forte neige", en: "heavy snow", icon: "snow" },
@@ -32,7 +41,11 @@ const WMO = {
   86: { fr: "fortes averses de neige", en: "heavy snow showers", icon: "snow" },
   95: { fr: "orage", en: "thunderstorm", icon: "storm" },
   96: { fr: "orage avec grêle", en: "thunderstorm with hail", icon: "storm" },
-  99: { fr: "orage avec forte grêle", en: "thunderstorm with heavy hail", icon: "storm" },
+  99: {
+    fr: "orage avec forte grêle",
+    en: "thunderstorm with heavy hail",
+    icon: "storm",
+  },
 };
 
 function weatherLabel(code, locale) {
@@ -69,44 +82,45 @@ function buildIcon(code, isDay) {
   }
 }
 
-async function fetchWeather(config) {
+export async function fetchWeather(config) {
   const { lat, lon } = config.location;
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", lat);
   url.searchParams.set("longitude", lon);
   url.searchParams.set(
     "current",
-    "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,is_day,uv_index"
+    "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,is_day,uv_index",
   );
-  url.searchParams.set("hourly", "temperature_2m,precipitation_probability,weather_code");
+  url.searchParams.set(
+    "hourly",
+    "temperature_2m,precipitation_probability,weather_code",
+  );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,uv_index_max"
+    "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,uv_index_max",
   );
   url.searchParams.set("timezone", config.timezone);
   url.searchParams.set("forecast_days", "7");
   url.searchParams.set(
     "temperature_unit",
-    config.units.temp === "fahrenheit" ? "fahrenheit" : "celsius"
+    config.units.temp === "fahrenheit" ? "fahrenheit" : "celsius",
   );
   url.searchParams.set(
     "wind_speed_unit",
-    config.units.wind === "mph" ? "mph" : "kmh"
+    config.units.wind === "mph" ? "mph" : "kmh",
   );
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
-  const data = await res.json();
+  const data = await fetchJson(url);
 
-  const airUrl = new URL("https://air-quality-api.open-meteo.com/v1/air-quality");
+  const airUrl = new URL(
+    "https://air-quality-api.open-meteo.com/v1/air-quality",
+  );
   airUrl.searchParams.set("latitude", lat);
   airUrl.searchParams.set("longitude", lon);
   airUrl.searchParams.set("current", "us_aqi,pm2_5");
   airUrl.searchParams.set("timezone", config.timezone);
   try {
-    const airRes = await fetch(airUrl);
-    if (!airRes.ok) throw new Error(`Open-Meteo air quality ${airRes.status}`);
-    data.airQuality = await airRes.json();
+    data.airQuality = await fetchJson(airUrl, {}, 5000);
   } catch (err) {
     console.warn("[weather] air quality unavailable", err);
     data.airQuality = null;
@@ -121,22 +135,26 @@ function localDate(dateString) {
 
 function windArrow(deg) {
   // meteorological convention: direction the wind blows FROM, arrow points where it's headed
-  return `<span style="display:inline-block;transform:rotate(${deg}deg)">&#8593;</span>`;
+  return `<span style="display:inline-block;transform:rotate(${deg + 180}deg)">&#8593;</span>`;
 }
 
 function metric(label, value, detail) {
   return `<span class="metric-label">${label}</span><strong>${value}</strong><small>${detail}</small>`;
 }
 
-function weatherWarning(data, config) {
+export function weatherWarning(data, config) {
   const isFr = config.locale?.startsWith("fr");
   const daily = data.daily;
   const hourly = data.hourly;
   const nextHours = hourly.time
     .map((time, index) => ({ time: new Date(time), index }))
-    .filter(({ time }) => time >= new Date() && time.getTime() < Date.now() + 24 * 60 * 60 * 1000);
+    .filter(
+      ({ time }) =>
+        time >= new Date() && time.getTime() < Date.now() + 24 * 60 * 60 * 1000,
+    );
   const codes = nextHours.map(({ index }) => hourly.weather_code[index]);
-  const maxWind = daily.wind_gusts_10m_max?.[0] ?? daily.wind_speed_10m_max?.[0] ?? 0;
+  const maxWind =
+    daily.wind_gusts_10m_max?.[0] ?? daily.wind_speed_10m_max?.[0] ?? 0;
   const rainChance = daily.precipitation_probability_max?.[0] ?? 0;
   const rainTotal = daily.precipitation_sum?.[0] ?? 0;
   const uv = daily.uv_index_max?.[0] ?? data.current.uv_index ?? 0;
@@ -144,25 +162,66 @@ function weatherWarning(data, config) {
   const high = daily.temperature_2m_max?.[0];
 
   if (codes.some((code) => code >= 95)) {
-    return { level: "danger", text: isFr ? "Orages possibles aujourd'hui" : "Thunderstorms possible today" };
+    return {
+      level: "danger",
+      text: isFr
+        ? "Orages possibles aujourd'hui"
+        : "Thunderstorms possible today",
+    };
   }
-  if (maxWind >= 60) {
-    return { level: "danger", text: isFr ? `Rafales jusqu'à ${Math.round(maxWind)} ${config.units.wind}` : `Wind gusts up to ${Math.round(maxWind)} ${config.units.wind}` };
+  if (maxWind >= (config.units.wind === "mph" ? 37.3 : 60)) {
+    return {
+      level: "danger",
+      text: isFr
+        ? `Rafales jusqu'à ${Math.round(maxWind)} ${config.units.wind}`
+        : `Wind gusts up to ${Math.round(maxWind)} ${config.units.wind}`,
+    };
   }
-  if (codes.some((code) => code >= 71 && code <= 86) && rainChance >= 60) {
-    return { level: "notice", text: isFr ? "Neige ou averses de neige prévues" : "Snow or snow showers expected" };
+  if (
+    codes.some((code) => [71, 73, 75, 77, 85, 86].includes(code)) &&
+    rainChance >= 60
+  ) {
+    return {
+      level: "notice",
+      text: isFr
+        ? "Neige ou averses de neige prévues"
+        : "Snow or snow showers expected",
+    };
   }
   if (rainChance >= 80 && rainTotal >= 10) {
-    return { level: "notice", text: isFr ? `Pluie importante prévue · ${Math.round(rainTotal)} mm` : `Heavy rain expected · ${Math.round(rainTotal)} mm` };
+    return {
+      level: "notice",
+      text: isFr
+        ? `Pluie importante prévue · ${Math.round(rainTotal)} mm`
+        : `Heavy rain expected · ${Math.round(rainTotal)} mm`,
+    };
   }
   if (uv >= 8) {
-    return { level: "notice", text: isFr ? `UV élevé · indice ${Math.round(uv)}` : `High UV · index ${Math.round(uv)}` };
+    return {
+      level: "notice",
+      text: isFr
+        ? `UV élevé · indice ${Math.round(uv)}`
+        : `High UV · index ${Math.round(uv)}`,
+    };
   }
-  if (low != null && low <= -15) {
-    return { level: "notice", text: isFr ? `Froid intense · minimum ${Math.round(low)}°` : `Extreme cold · low ${Math.round(low)}°` };
+  if (low != null && low <= (config.units.temp === "fahrenheit" ? 5 : -15)) {
+    return {
+      level: "notice",
+      text: isFr
+        ? `Froid intense · minimum ${Math.round(low)}°`
+        : `Extreme cold · low ${Math.round(low)}°`,
+    };
   }
-  if (high != null && high >= 32) {
-    return { level: "notice", text: isFr ? `Chaleur importante · maximum ${Math.round(high)}°` : `High heat · high ${Math.round(high)}°` };
+  if (
+    high != null &&
+    high >= (config.units.temp === "fahrenheit" ? 89.6 : 32)
+  ) {
+    return {
+      level: "notice",
+      text: isFr
+        ? `Chaleur importante · maximum ${Math.round(high)}°`
+        : `High heat · high ${Math.round(high)}°`,
+    };
   }
   return null;
 }
@@ -179,39 +238,67 @@ function renderTodayStrip(root, data, config) {
   const sunrise = new Date(daily.sunrise[0]);
   const sunset = new Date(daily.sunset[0]);
   const now = Date.now();
-  const daylight = Math.max(0, Math.min(1, (now - sunrise.getTime()) / (sunset.getTime() - sunrise.getTime())));
-  const time = (date) => new Intl.DateTimeFormat(config.locale, { hour: "2-digit", minute: "2-digit" }).format(date);
+  const daylight = Math.max(
+    0,
+    Math.min(
+      1,
+      (now - sunrise.getTime()) / (sunset.getTime() - sunrise.getTime()),
+    ),
+  );
+  const time = (date) =>
+    new Intl.DateTimeFormat(config.locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
 
   root.querySelector('[data-metric="uv"]').innerHTML = metric(
     "UV",
     uv == null ? "—" : Math.round(uv),
-    uv >= 6 ? (isFr ? "élevé" : "high") : isFr ? "aujourd'hui" : "today"
+    uv >= 6 ? (isFr ? "élevé" : "high") : isFr ? "aujourd'hui" : "today",
   );
   root.querySelector('[data-metric="rain"]').innerHTML = metric(
     isFr ? "Pluie" : "Rain",
     rain == null ? "—" : `${rain}%`,
-    daily.precipitation_sum?.[0] == null ? "—" : `${Math.round(daily.precipitation_sum[0])} mm`
+    daily.precipitation_sum?.[0] == null
+      ? "—"
+      : `${Math.round(daily.precipitation_sum[0])} mm`,
   );
   root.querySelector('[data-metric="wind"]').innerHTML = metric(
     isFr ? "Vent" : "Wind",
     wind == null ? "—" : `${Math.round(wind)}`,
-    gust == null ? config.units.wind : `${config.units.wind} · rafales ${Math.round(gust)}`
+    gust == null
+      ? config.units.wind
+      : `${config.units.wind} · rafales ${Math.round(gust)}`,
   );
   root.querySelector('[data-metric="air"]').innerHTML = metric(
     "AQI",
     air?.us_aqi == null ? "—" : Math.round(air.us_aqi),
-    air?.pm2_5 == null ? (isFr ? "air" : "air") : `PM2.5 ${Math.round(air.pm2_5)}`
+    air?.pm2_5 == null
+      ? isFr
+        ? "air"
+        : "air"
+      : `PM2.5 ${Math.round(air.pm2_5)}`,
   );
 
-  root.querySelector(".daylight-percent").textContent = `${Math.round(daylight * 100)}%`;
+  root.querySelector(".daylight-percent").textContent =
+    `${Math.round(daylight * 100)}%`;
   root.querySelector(".daylight-track span").style.width = `${daylight * 100}%`;
-  root.querySelector(".today-daylight-times").textContent = `${time(sunrise)} — ${time(sunset)}`;
+  root.querySelector(".today-daylight-times").textContent =
+    `${time(sunrise)} — ${time(sunset)}`;
 
   const alert = root.querySelector(".today-alert");
   const warning = weatherWarning(data, config);
   alert.hidden = !warning;
   alert.className = `today-alert${warning ? ` is-${warning.level}` : ""}`;
   alert.textContent = warning ? warning.text : "";
+}
+
+export function hourlyIndices(times, now, count = 5, step = 3) {
+  const first = times.findIndex((time) => new Date(time) >= now);
+  if (first < 0) return [];
+  return Array.from({ length: count }, (_, i) => first + i * step).filter(
+    (i) => i < times.length,
+  );
 }
 
 function render(root, data, config, meta) {
@@ -223,18 +310,21 @@ function render(root, data, config, meta) {
     `${buildIcon(c.weather_code, c.is_day)} ${Math.round(c.temperature_2m)}°`;
 
   root.querySelector(".hero-sub").textContent =
-    `${isFr ? "ressenti" : "feels"} ${Math.round(c.apparent_temperature)}° · ` +
-    `${Math.round(c.wind_speed_10m)} ${config.units.wind} · ${c.relative_humidity_2m}%`;
+    `${weatherLabel(c.weather_code, config.locale)} · ${isFr ? "ressenti" : "feels"} ${Math.round(c.apparent_temperature)}°`;
 
   const hourly = root.querySelector(".hourly-strip");
   hourly.innerHTML = "";
-  const nowIdx = data.hourly.time.findIndex((t) => new Date(t) >= new Date());
-  for (let i = Math.max(nowIdx, 0); i < Math.max(nowIdx, 0) + 12 && i < data.hourly.time.length; i++) {
+  for (const i of hourlyIndices(
+    data.hourly.time,
+    new Date(),
+    config.ui?.hourlyCount,
+    config.ui?.hourlyStep,
+  )) {
     const hour = new Date(data.hourly.time[i]).getHours();
     const el = document.createElement("div");
     el.className = "hour";
     el.innerHTML = `<div>${hour}h</div>${buildIcon(data.hourly.weather_code[i], 1)}<div>${Math.round(
-      data.hourly.temperature_2m[i]
+      data.hourly.temperature_2m[i],
     )}°</div><div>${data.hourly.precipitation_probability[i]}%</div>`;
     hourly.appendChild(el);
   }
@@ -243,7 +333,9 @@ function render(root, data, config, meta) {
   days.innerHTML = "";
   for (let i = 0; i < data.daily.time.length; i++) {
     const dayDate = localDate(data.daily.time[i]);
-    const label = new Intl.DateTimeFormat(config.locale, { weekday: "short" }).format(dayDate);
+    const label = new Intl.DateTimeFormat(config.locale, {
+      weekday: "short",
+    }).format(dayDate);
     const dateLabel = new Intl.DateTimeFormat(config.locale, {
       day: "numeric",
       month: "short",
@@ -257,7 +349,7 @@ function render(root, data, config, meta) {
     summary.innerHTML =
       `<span class="day-name"><strong>${label}</strong><small>${dateLabel}</small></span>` +
       `${buildIcon(data.daily.weather_code[i], 1)}<span class="day-temperatures">${Math.round(
-        data.daily.temperature_2m_max[i]
+        data.daily.temperature_2m_max[i],
       )}° / ${Math.round(data.daily.temperature_2m_min[i])}°</span>`;
 
     const details = document.createElement("div");
@@ -272,13 +364,19 @@ function render(root, data, config, meta) {
       ` (${rainTotal == null ? "—" : Math.round(rainTotal)} mm)</span>` +
       `<span>${isFr ? "Vent" : "Wind"}: ${windMax == null ? "—" : Math.round(windMax)} ${config.units.wind}` +
       `${windDirection == null ? "" : ` ${windArrow(windDirection)}`}</span>` +
-      `<span>${isFr ? "Soleil" : "Sun"}: ${new Intl.DateTimeFormat(config.locale, {
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(data.daily.sunrise[i]))}–${new Intl.DateTimeFormat(config.locale, {
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(new Date(data.daily.sunset[i]))}</span>`;
+      `<span>${isFr ? "Soleil" : "Sun"}: ${new Intl.DateTimeFormat(
+        config.locale,
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+        },
+      ).format(new Date(data.daily.sunrise[i]))}–${new Intl.DateTimeFormat(
+        config.locale,
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+        },
+      ).format(new Date(data.daily.sunset[i]))}</span>`;
 
     summary.addEventListener("click", () => {
       const expanded = !summary.matches("[aria-expanded='true']");
@@ -290,8 +388,12 @@ function render(root, data, config, meta) {
   }
 
   root.classList.toggle("is-stale", meta.stale);
+  document
+    .getElementById("today-strip")
+    .classList.toggle("is-stale", meta.stale);
   const staleNote = root.querySelector(".stale-note");
-  if (staleNote) staleNote.textContent = meta.stale ? formatUpdatedAt(meta.fetchedAt) : "";
+  if (staleNote)
+    staleNote.textContent = meta.stale ? formatUpdatedAt(meta.fetchedAt) : "";
 
   void weatherLabel; // label lookup available for a future text description line
   void windArrow;
@@ -299,14 +401,21 @@ function render(root, data, config, meta) {
 
 export function initWeather(config, root) {
   const locationEl = root.querySelector(".weather-location");
-  if (locationEl) locationEl.textContent = config.location.label ? `— ${config.location.label}` : "";
+  if (locationEl)
+    locationEl.textContent = config.location.label
+      ? `— ${config.location.label}`
+      : "";
 
   const poller = createPoller({
     key: WEATHER_CACHE_KEY,
     intervalMs: config.refresh.weather,
     fetcher: () => fetchWeather(config),
     onData: (data, meta) => render(root, data, config, meta),
-    onError: (err) => console.warn("[weather]", err),
+    onError: (err) => {
+      console.warn("[weather]", err);
+      root.querySelector(".stale-note").textContent =
+        "Météo indisponible · nouvel essai automatique";
+    },
   });
   poller.start();
   return poller;

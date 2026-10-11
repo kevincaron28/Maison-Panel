@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr-CA">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Maison · Deux directions</title>
+    <link rel="stylesheet" href="preview.css" />
+  </head>
+  <body>
+    <div class="review">
+      <strong>Maison / Étude d’interface</strong>
+      <div>
+        <button id="night" aria-pressed="true">A · Nuit calme</button
+        ><button id="paper" aria-pressed="false">B · Papier & sauge</button>
+      </div>
+      <span>Données d’exemple</span>
+    </div>
+    <main class="dashboard">
+      <header>
+        <a href="#" aria-label="Maison, accueil">m<span>aison.</span></a
+        ><span>DIMANCHE 11 OCTOBRE</span
+        ><button id="explore" aria-expanded="false">
+          Explorer <span>↗</span>
+        </button>
+      </header>
+      <section class="hero">
+        <div class="clock">
+          <p>Bienvenue, famille Caron.</p>
+          <h1>08<span>:</span>42</h1>
+          <div class="place">Un dimanche tranquille, à la maison.</div>
+        </div>
+        <div class="weather">
+          <div class="weather-icon">◌</div>
+          <div>
+            <p>SHERRINGTON</p>
+            <strong>18°</strong><span>Éclaircies · ressenti 16°</span
+            ><small>Maximum 19° · minimum 8°</small>
+          </div>
+        </div>
+      </section>
+      <div class="content">
+        <section class="forecast">
+          <div class="section-heading">
+            <h2>La journée, en un regard</h2>
+            <span>Pluie faible ce soir</span>
+          </div>
+          <div class="hours">
+            <div><span>Maintenant</span><b>18°</b><small>10 %</small></div>
+            <div><span>11 h</span><b>19°</b><small>10 %</small></div>
+            <div><span>14 h</span><b>19°</b><small>20 %</small></div>
+            <div><span>17 h</span><b>17°</b><small>40 %</small></div>
+            <div><span>20 h</span><b>14°</b><small>60 %</small></div>
+          </div>
+          <div class="conditions">
+            <span>Vent <b>12 km/h</b></span
+            ><span>UV <b>3 · modéré</b></span
+            ><span>Coucher <b>18 h 14</b></span>
+          </div>
+        </section>
+        <section class="agenda">
+          <div class="section-heading">
+            <h2>À l’agenda</h2>
+            <span>Aujourd’hui</span>
+          </div>
+          <div class="event">
+            <time>10:30</time>
+            <div><b>Brunch en famille</b><span>À la maison</span></div>
+          </div>
+          <div class="event">
+            <time>16:00</time>
+            <div><b>Promenade</b><span>Un peu de temps dehors</span></div>
+          </div>
+          <div class="tomorrow">
+            <span>DEMAIN</span><b>Une nouvelle semaine, tout simplement.</b>
+          </div>
+        </section>
+      </div>
+      <footer>
+        <div class="album">♫</div>
+        <div class="track">
+          <span>POUR ACCOMPAGNER LA MATINÉE</span><strong>Sunday Morning</strong
+          ><small>Votre sélection · Salon</small>
+        </div>
+        <div class="playback">
+          <button aria-label="Piste précédente" id="previous">‹</button
+          ><button aria-label="Pause" id="play">Ⅱ</button
+          ><button aria-label="Piste suivante" id="next">›</button>
+        </div>
+        <span class="footnote">La maison suit son rythme.</span>
+      </footer>
+      <section class="drawer" id="drawer" hidden>
+        <div class="section-heading">
+          <h2>Un peu plus loin</h2>
+          <button id="close">Fermer</button>
+        </div>
+        <div class="extras">
+          <article>
+            <h3>Pêche & lune</h3>
+            <p>La prochaine fenêtre</p>
+            <strong>16 h 20 — 18 h 20</strong>
+            <p>Détails solunaires à portée de main.</p>
+          </article>
+          <article>
+            <h3>Marchés</h3>
+            <p>Un aperçu, quand vous le voulez.</p>
+            <strong>S&P 500 · +0,6 %</strong>
+            <p>Cotations différées · exemple</p>
+          </article>
+        </div>
+      </section>
+    </main>
+    <script>
+      const night = document.getElementById("night"),
+        paper = document.getElementById("paper");
+      function theme(light) {
+        document.body.classList.toggle("paper", light);
+        night.setAttribute("aria-pressed", String(!light));
+        paper.setAttribute("aria-pressed", String(light));
+      }
+      night.onclick = () => theme(false);
+      paper.onclick = () => theme(true);
+      const drawer = document.getElementById("drawer"),
+        explore = document.getElementById("explore");
+      function toggle(open) {
+        drawer.hidden = !open;
+        explore.setAttribute("aria-expanded", String(open));
+        if (open) document.getElementById("close").focus();
+        else explore.focus();
+      }
+      explore.onclick = () => toggle(true);
+      document.getElementById("close").onclick = () => toggle(false);
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") toggle(false);
+      });
+      const play = document.getElementById("play");
+      play.onclick = () => {
+        const paused = play.textContent === "Ⅱ";
+        play.textContent = paused ? "▷" : "Ⅱ";
+        play.setAttribute("aria-label", paused ? "Lecture" : "Pause");
+      };
+      const tracks = ["Sunday Morning", "Quiet Hours", "Softly"];
+      let track = 0;
+      function select(delta) {
+        track = (track + delta + tracks.length) % tracks.length;
+        document.querySelector(".track strong").textContent = tracks[track];
+      }
+      document.getElementById("next").onclick = () => select(1);
+      document.getElementById("previous").onclick = () => select(-1);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr-CA">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Réglages · Maison</title>
+    <style>
+      body {
+        margin: 40px auto;
+        padding: 24px;
+        max-width: 640px;
+        background: #121918;
+        color: #eef3ef;
+        font: 20px/1.6 system-ui;
+      }
+      a {
+        color: #b3d6c4;
+      }
+      input,
+      button {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 16px;
+        margin: 10px 0;
+        font: inherit;
+        border-radius: 10px;
+        border: 1px solid #788c84;
+      }
+      button {
+        cursor: pointer;
+      }
+      small {
+        display: block;
+        color: #bdc9c1;
+      }
+      code {
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="./">← Maison</a>
+    <h1>Réglages du panneau</h1>
+    <h2>Marchés</h2>
+    <p>Connectez votre compte Financial Modeling Prep sur cette tablette.</p>
+    <form id="market-settings">
+      <label for="market-key">Clé API FMP</label
+      ><input
+        id="market-key"
+        type="password"
+        autocomplete="off"
+        spellcheck="false"
+      /><small
+        >Enregistrée uniquement dans ce navigateur et envoyée à FMP pour les
+        cotations. Elle reste accessible aux scripts du panneau. N’utilisez pas
+        une clé dotée de permissions sensibles.</small
+      ><button type="submit">Enregistrer</button
+      ><button type="button" id="remove-key">Déconnecter les marchés</button>
+    </form>
+    <p id="settings-status" role="status"></p>
+    <h2>État de la tablette</h2>
+    <p id="device-status"></p>
+    <p>Adresse actuelle : <code id="current-url"></code></p>
+    <p>
+      Si le panneau ne démarre pas, vérifiez cette adresse dans Fully Kiosk et
+      mettez à jour Android System WebView.
+    </p>
+    <script type="module" src="js/settings.js"></script>
+  </body>
+</html>

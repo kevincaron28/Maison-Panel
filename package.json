@@ -2,6 +2,18 @@
   "name": "maison-panel",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test",
+    "serve": "node scripts/serve.mjs",
+    "package": "node scripts/package.mjs"
+  },
   "description": "Wall-mounted tablet dashboard: clock, weather, solunar, calendar, and markets. Static site, no build step.",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "jsdom": "^30.1.2"
+  }
 }

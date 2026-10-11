@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr-CA">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Maison · Nouveau panneau</title>
+    <link rel="stylesheet" href="../css/calm.css" />
+  </head>
+  <body>
+    <div
+      id="boot-status"
+      role="status"
+      style="
+        position: fixed;
+        z-index: 100;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        padding: 16px;
+        background: #18252b;
+        color: #fff;
+        border: 1px solid #8fa3a6;
+        border-radius: 12px;
+        font: 18px system-ui;
+      "
+    >
+      <span id="boot-message">Maison · Démarrage du panneau…</span>
+      <button id="retry-start" type="button">Réessayer</button>
+    </div>
+    <noscript
+      ><p>
+        Activez JavaScript dans Fully Kiosk pour charger Maison Panel.
+      </p></noscript
+    >
+    <div id="panel">
+      <nav class="home-nav" aria-label="Navigation principale">
+        <a class="wordmark" href="live.html">maison.</a
+        ><span class="home-caption">LE QUOTIDIEN, TOUT SIMPLEMENT.</span>
+        <div>
+          <button type="button" id="theme-toggle" aria-label="Changer le thème">
+            Thème clair</button
+          ><button
+            type="button"
+            id="explorer-open"
+            aria-expanded="false"
+            aria-controls="tile-side"
+          >
+            Explorer ↗
+          </button>
+        </div>
+      </nav>
+      <main id="tile-main">
+        <header id="tile-header">
+          <p class="greeting">Bienvenue, famille Caron.</p>
+          <div class="clock-time">--:--</div>
+          <div class="clock-date">Maison</div>
+        </header>
+        <section id="tile-weather" aria-label="Météo">
+          <div class="weather-summary">
+            <h1 class="section-label">
+              Aujourd’hui <span class="weather-location"></span>
+            </h1>
+            <div class="hero-temp value-fade">—°</div>
+            <div class="hero-sub">Chargement de la météo…</div>
+            <div class="today-alert" role="status" hidden></div>
+          </div>
+          <div class="weather-forecast">
+            <div class="section-heading">
+              <h2>La journée, en un regard</h2>
+              <button
+                id="forecast-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="forecast-days"
+              >
+                7 jours
+              </button>
+            </div>
+            <div class="hourly-strip"></div>
+            <div id="forecast-days" hidden><div class="daily-rows"></div></div>
+            <section id="today-strip" aria-label="Conditions du jour">
+              <div class="today-metric" data-metric="uv"></div>
+              <div class="today-metric" data-metric="rain"></div>
+              <div class="today-metric" data-metric="wind"></div>
+              <div class="today-metric" data-metric="air"></div>
+              <div class="today-daylight">
+                <div class="today-daylight-heading">
+                  <span>Jour</span><span class="daylight-percent"></span>
+                </div>
+                <div class="daylight-track"><span></span></div>
+                <div class="today-daylight-times"></div>
+              </div>
+            </section>
+            <div class="stale-note" role="status"></div>
+            <div class="attribution">Météo : Open-Meteo · CC BY 4.0</div>
+          </div>
+        </section>
+        <section id="tile-calendar">
+          <div class="section-heading">
+            <h2>À l’agenda</h2>
+            <span>Votre calendrier</span>
+          </div>
+          <div class="calendar-embed-container"></div>
+        </section>
+      </main>
+      <footer id="tile-spotify">
+        <div class="music-label">
+          <span class="music-mark" aria-hidden="true">♫</span>
+          <h2>Musique</h2>
+        </div>
+        <div class="spotify-body"></div>
+        <div class="spotify-status" role="status"></div>
+      </footer>
+      <section
+        id="tile-side"
+        class="explorer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="explorer-title"
+        hidden
+      >
+        <div class="section-heading explorer-heading">
+          <div>
+            <span class="eyebrow">MAISON</span>
+            <h2 id="explorer-title">Un peu plus loin</h2>
+          </div>
+          <button id="explorer-close" type="button">Fermer</button>
+        </div>
+        <div class="explorer-grid">
+          <section id="tile-solunar">
+            <h2>Pêche & lune</h2>
+            <button
+              class="moon-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-label="Afficher les détails de pêche"
+            >
+              <span class="moon-disc"></span>
+            </button>
+            <div class="solunar-details" hidden>
+              <div class="moon-phase-label"></div>
+              <div class="next-period"></div>
+              <div class="day-rating"></div>
+              <div class="solunar-periods"></div>
+            </div>
+          </section>
+          <section id="tile-markets">
+            <div class="markets-heading">
+              <h2>Marchés</h2>
+              <button class="market-toggle" type="button" aria-expanded="false">
+                Afficher plus
+              </button>
+            </div>
+            <div class="market-list"></div>
+            <div class="market-note stale-note"></div>
+          </section>
+          <section id="tile-cameras" hidden>
+            <h2>Caméras</h2>
+            <div class="camera-feeds"></div>
+          </section>
+          <a class="settings-link" href="../settings.html"
+            >Réglages du panneau ↗</a
+          >
+        </div>
+      </section>
+    </div>
+    <div id="offline-indicator" role="status">
+      Hors ligne · dernières données disponibles
+    </div>
+    <script src="../js/boot.js" defer></script>
+    <script type="module" src="../js/app.js"></script>
+  </body>
+</html>

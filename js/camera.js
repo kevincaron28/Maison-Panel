@@ -15,7 +15,12 @@ function ensureOverlay() {
     <div class="camera-overlay-name"></div>
     <img class="camera-overlay-img" alt="" />
   `;
-  overlay.querySelector(".camera-overlay-close").addEventListener("click", closeOverlay);
+  overlay
+    .querySelector(".camera-overlay-close")
+    .addEventListener("click", closeOverlay);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeOverlay();
+  });
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeOverlay();
   });
@@ -42,14 +47,17 @@ function snapshotUrl(feed) {
 }
 
 function initFeed(config, root, feed) {
-  const card = document.createElement("div");
+  const card = document.createElement("button");
+  card.type = "button";
   card.className = "camera-feed";
   card.innerHTML = `
-    <img class="camera-feed-img" alt="${feed.name}" />
-    <div class="camera-feed-label">${feed.name}</div>
+    <img class="camera-feed-img" alt="" />
+    <div class="camera-feed-label"></div>
     <div class="camera-feed-status">connexion…</div>
   `;
   root.appendChild(card);
+  card.querySelector(".camera-feed-label").textContent = feed.name;
+  card.setAttribute("aria-label", `Agrandir ${feed.name}`);
 
   const img = card.querySelector(".camera-feed-img");
   const status = card.querySelector(".camera-feed-status");
@@ -78,10 +86,22 @@ function initFeed(config, root, feed) {
 }
 
 export function initCamera(config, root) {
-  const feeds = (config.camera?.feeds || []).filter((f) => f.enabled && f.snapshotUrl);
+  const feeds = (config.camera?.feeds || []).filter(
+    (f) => f.enabled !== false && f.snapshotUrl,
+  );
   if (feeds.length === 0) return;
+  root.hidden = false;
 
   for (const feed of feeds) {
-    initFeed(config, root, feed);
+    if (
+      location.protocol === "https:" &&
+      new URL(feed.snapshotUrl, location.href).protocol !== "https:"
+    ) {
+      const notice = document.createElement("p");
+      notice.textContent = `${feed.name} : une adresse HTTPS est requise sur ce panneau.`;
+      root.querySelector(".camera-feeds").appendChild(notice);
+    } else {
+      initFeed(config, root.querySelector(".camera-feeds"), feed);
+    }
   }
 }

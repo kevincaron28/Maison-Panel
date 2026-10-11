@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## October 2026 audit corrections (take precedence over older notes below)
+
+- Production URL: https://maison-panel.kcaron.workers.dev/ (verified in Cloudflare).
+- GitHub reports this repository as public. Never commit API keys, camera credentials or device tokens.
+- Runtime remains static vanilla JS. Wrangler packages an allowlist into `dist/` before deploying;
+  there is no transpilation or bundler. Do not deploy the repository root.
+- Node 24+ development checks: `npm ci`, `npm test`, `npm run package`; preview with `npm run serve`.
+- Optional camera feeds require HTTPS from the hosted HTTPS panel; no camera appears when feeds are empty.
+- FMP setup is per device in `settings.html`. The old exposed key must be revoked by the account owner.
+- `docs/system-audit.md` records evidence, limitations and upgrade sequence. `/design/` contains
+  sample-data concepts and `/design/live.html` the shared layout with real modules. A / Nuit calme is approved and active in index.html.
+
 ## Project overview
 
 **Maison Panel** is a wall-mounted Android tablet dashboard: clock, weather, fishing/solunar timing,
