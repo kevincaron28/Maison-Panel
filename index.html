@@ -37,8 +37,8 @@
         <a class="wordmark" href="./">maison.</a
         ><span class="home-caption">LE QUOTIDIEN, TOUT SIMPLEMENT.</span>
         <div>
-          <button type="button" class="panel-shortcut" data-panel="tile-solunar" aria-controls="tile-side">Pêche</button>
-          <button type="button" class="panel-shortcut" data-panel="tile-markets" aria-controls="tile-side">Marchés</button>
+          <a class="panel-shortcut" href="fishing.html">Pêche</a>
+          <a class="panel-shortcut" href="markets.html">Marchés</a>
           <button type="button" id="theme-toggle" aria-label="Changer le thème">
             Thème clair</button
           ><button
@@ -56,6 +56,13 @@
           <p class="greeting">Bienvenue, famille Caron.</p>
           <div class="clock-time">--:--</div>
           <div class="clock-date">Maison</div>
+          <div class="home-modes" role="group" aria-label="Modes du panneau">
+            <button type="button" data-home-mode="home" aria-pressed="true">Bonjour</button>
+            <button type="button" data-home-mode="away" aria-pressed="false">Absent</button>
+            <button type="button" data-home-mode="sleep" aria-pressed="false">Bonne nuit</button>
+          </div>
+          <p id="home-mode-status" role="status">Modes du panneau · Absent et Bonne nuit mettent Spotify en pause.</p>
+          <p id="fishing-now" hidden></p>
         </header>
         <section id="tile-weather" aria-label="Météo">
           <div class="weather-summary">
@@ -102,7 +109,7 @@
             <h2>À l’agenda</h2>
             <span>Votre calendrier</span>
           </div>
-          <div class="calendar-embed-container"></div>
+          <div class="daily-alerts" id="daily-alerts" aria-live="polite"></div><a class="reminders-link" href="settings.html#reminders">Gérer les rappels importants</a><div class="calendar-embed-container"></div>
         </section>
       </main>
       <footer id="tile-spotify">
@@ -124,9 +131,20 @@
         <div class="section-heading explorer-heading">
           <div>
             <span class="eyebrow">MAISON</span>
-            <h2 id="explorer-title">Pêche & marchés</h2>
+            <h2 id="explorer-title">Explorer la maison</h2>
           </div>
           <button id="explorer-close" type="button">Fermer</button>
+        </div>
+        <nav class="explorer-tabs" aria-label="Rubriques">
+          <button type="button" id="explorer-menu-back">Toutes les rubriques</button>
+          <a class="panel-shortcut" href="fishing.html">Pêche</a>
+          <a class="panel-shortcut" href="markets.html">Marchés</a>
+          <a href="settings.html">Réglages</a>
+        </nav>
+        <div id="explorer-menu">
+          <p>Choisissez une rubrique. La météo et l’agenda restent sur l’accueil; les commandes musicales sont accessibles en bas du panneau.</p>
+          <a class="panel-shortcut" href="fishing.html">Pêche · lune et périodes favorables</a>
+          <a class="panel-shortcut" href="markets.html">Marchés · les quatre indices</a>
         </div>
         <div class="explorer-grid">
           <section id="tile-solunar">

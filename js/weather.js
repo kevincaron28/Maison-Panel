@@ -1,8 +1,11 @@
 // Weather tile — Open-Meteo (no key, CORS: *). Brief §5.1.
-import { createPoller, formatUpdatedAt } from "./store.js";
+import { createPoller } from "./store.js";
 import { fetchJson } from "./network.js";
+import { weatherMood } from "./appearance.js";
 
-const WEATHER_CACHE_KEY = "weather-v2";
+export function weatherCacheKey(config) {
+  return `weather-v3:${config.location.lat}:${config.location.lon}:${config.timezone}:${config.units.temp}:${config.units.wind}`;
+}
 
 // WMO weather_code → { fr, en, icon }. Icon keys map to buildIcon() below.
 const WMO = {
@@ -161,6 +164,7 @@ export function weatherWarning(data, config) {
   const low = daily.temperature_2m_min?.[0];
   const high = daily.temperature_2m_max?.[0];
 
+  if (codes.some(code => [56,57,66,67].includes(code))) return {level:"danger",text:isFr ? "Précipitations verglaçantes possibles" : "Freezing precipitation possible"};
   if (codes.some((code) => code >= 95)) {
     return {
       level: "danger",
@@ -303,6 +307,8 @@ export function hourlyIndices(times, now, count = 5, step = 3) {
 
 function render(root, data, config, meta) {
   const c = data.current;
+  document.dispatchEvent(new document.defaultView.CustomEvent("maison-weather", {detail:{data,meta}}));
+  document.documentElement.dataset.weather = weatherMood(c, config.units, meta.stale);
   const isFr = config.locale?.startsWith("fr");
   renderTodayStrip(document, data, config);
 
@@ -393,7 +399,12 @@ function render(root, data, config, meta) {
     .classList.toggle("is-stale", meta.stale);
   const staleNote = root.querySelector(".stale-note");
   if (staleNote)
-    staleNote.textContent = meta.stale ? formatUpdatedAt(meta.fetchedAt) : "";
+    staleNote.textContent = `${meta.stale ? "Données en cache · " : ""}Conditions à ${c.time?.replace("T", " · ") || "heure inconnue"} · ${config.timezone} · ${config.units.temp === "fahrenheit" ? "°F" : "°C"}`;
+  const attribution = root.querySelector(".attribution");
+  if (attribution) {
+    attribution.textContent = `Open-Meteo · estimation météo · ${config.location.lat}, ${config.location.lon} · CC BY 4.0`;
+    attribution.title = "Les estimations peuvent différer de l’application météo du téléphone. Le ressenti est indiqué séparément.";
+  }
 
   void weatherLabel; // label lookup available for a future text description line
   void windArrow;
@@ -407,7 +418,7 @@ export function initWeather(config, root) {
       : "";
 
   const poller = createPoller({
-    key: WEATHER_CACHE_KEY,
+    key: weatherCacheKey(config),
     intervalMs: config.refresh.weather,
     fetcher: () => fetchWeather(config),
     onData: (data, meta) => render(root, data, config, meta),

@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## October 2026 audit corrections (take precedence over older notes below)
 
+- The user is now considering an optional local server for synchronized music and Fire TV control,
+  with easy migration from a Windows pilot to an old Dell. See `docs/local-server-plan.md`.
+  Older absolute no-server constraints below describe the original deployment, not this new proposal.
+  The shipped runtime remains static; no local service has been installed or integrated yet.
+
 - Production URL: https://maison-panel.kcaron.workers.dev/ (verified in Cloudflare).
 - GitHub reports this repository as public. Never commit API keys, camera credentials or device tokens.
 - Runtime remains static vanilla JS. Wrangler packages an allowlist into `dist/` before deploying;

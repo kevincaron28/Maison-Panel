@@ -5,7 +5,7 @@ import { setImmediate as flush } from "node:timers/promises";
 import vm from "node:vm";
 import { JSDOM } from "jsdom";
 import { rateDay, initSolunar, computeDayPeriods } from "../js/solunar.js";
-import { weatherWarning, hourlyIndices } from "../js/weather.js";
+import { weatherWarning, hourlyIndices, weatherCacheKey } from "../js/weather.js";
 import { initDashboard } from "../js/dashboard.js";
 import { createDailyReloadCheck, zonedParts } from "../js/runtime.js";
 import { loadCache, createPoller } from "../js/store.js";
@@ -46,7 +46,7 @@ test("forecast overview shows five spaced times and never wraps expired data to 
   assert.deepEqual(hourlyIndices(times, new Date("2026-10-12T00:00:00Z")), []);
 });
 
-test("new dashboard defaults to A and disclosure controls work", async (t) => {
+test("dashboard navigation and disclosure controls work", async (t) => {
   const dom = new JSDOM(
     await readFile(new URL("../index.html", import.meta.url), "utf8"),
   );
@@ -57,20 +57,20 @@ test("new dashboard defaults to A and disclosure controls work", async (t) => {
     { ui: { defaultTheme: "night" } },
     document.getElementById("panel"),
   );
-  assert.equal(document.documentElement.dataset.theme, "night");
   assert.equal(
     document.querySelector(".greeting").textContent,
     "Bienvenue, famille Caron.",
   );
   document.getElementById("explorer-open").click();
   assert.equal(document.getElementById("tile-side").hidden, false);
+  assert.equal(document.getElementById("explorer-menu").hidden, false);
+  assert.equal(document.getElementById("tile-solunar").hidden, true);
+  assert.equal(document.getElementById("tile-markets").hidden, true);
   document.getElementById("explorer-close").click();
   assert.equal(document.getElementById("tile-side").hidden, true);
-  document.querySelector('[data-panel="tile-solunar"]').click();
-  assert.equal(document.getElementById("tile-side").hidden, false);
-  assert.equal(document.querySelector(".solunar-details").hidden, false);
-  document.getElementById("explorer-close").click();
-  assert.equal(document.activeElement.dataset.panel,"tile-solunar");
+  assert.equal(document.querySelector('.home-nav a[href="fishing.html"]').textContent,"Pêche");
+  assert.equal(document.querySelector('.home-nav a[href="markets.html"]').textContent,"Marchés");
+  assert.equal(document.querySelectorAll('button[data-panel="tile-markets"]').length,0);
   document.getElementById("forecast-toggle").click();
   assert.equal(document.getElementById("forecast-days").hidden, false);
   dom.window.close();
@@ -346,6 +346,33 @@ test("existing Spotify session renders track, speaker and all playback controls"
   dom.window.close();
 });
 
+test("home modes pause active Spotify once and report disconnected sessions honestly", async (t) => {
+  const dom = new JSDOM(await readFile(new URL("../index.html",import.meta.url),"utf8"),{url:"https://example.test/"});
+  t.mock.property(globalThis,"document",dom.window.document);
+  t.mock.property(globalThis,"location",dom.window.location);
+  t.mock.property(globalThis,"localStorage",storage());
+  t.mock.method(globalThis,"setTimeout",()=>1);
+  localStorage.setItem("maison-panel:spotify-tokens",JSON.stringify({accessToken:"fixture",expiresAt:Date.now()+3600000}));
+  const playback = {item:{name:"Fixture",artists:[]},device:{id:"speaker"},is_playing:true};
+  const writes = [];
+  t.mock.method(globalThis,"fetch",async(url,options)=>{
+    if (options.method === "PUT") {
+      writes.push(new URL(url).pathname); playback.is_playing=false;
+      return {ok:true,status:204};
+    }
+    return {ok:true,status:200,text:async()=>JSON.stringify(playback)};
+  });
+  const music = initSpotify({spotify:{clientId:"mode-fixture",refresh:10000}},document.getElementById("tile-spotify"));
+  await flush();
+  assert.match(await music.pauseForMode(),/envoyée/);
+  assert.deepEqual(writes,["/v1/me/player/pause"]);
+  assert.match(await music.pauseForMode(),/déjà en pause/);
+  localStorage.removeItem("maison-panel:spotify-tokens");
+  assert.match(await music.pauseForMode(),/non connecté/);
+  assert.equal(writes.length,1);
+  dom.window.close();
+});
+
 test("music controls send shuffle, repeat, seek, volume and speaker transfer with correct payloads", async (t) => {
   const dom = new JSDOM(await readFile(new URL("../index.html",import.meta.url),"utf8"),{url:"https://maison-panel.kcaron.workers.dev/"});
   t.mock.property(globalThis,"document",dom.window.document);
@@ -361,6 +388,8 @@ test("music controls send shuffle, repeat, seek, volume and speaker transfer wit
       writes.push({method:options.method,path:target.pathname,params:target.searchParams,body:options.body});
       if (target.pathname.endsWith("/shuffle")) playback.shuffle_state = true;
       if (target.pathname.endsWith("/repeat")) playback.repeat_state = "context";
+      if (target.pathname.endsWith("/pause")) playback.is_playing = false;
+      if (target.pathname.endsWith("/play")) playback.is_playing = true;
       return {ok:true,status:204};
     }
     return {ok:true,status:200,text:async()=>JSON.stringify(target.pathname.endsWith("/devices") ? {devices:[{id:"kitchen",name:"Cuisine",is_active:true},{id:"living",name:"Salon"},{id:"restricted",name:"Bloqué",is_restricted:true}]} : playback)};
@@ -387,6 +416,22 @@ test("music controls send shuffle, repeat, seek, volume and speaker transfer wit
   assert.deepEqual(JSON.parse(writes[4].body),{device_ids:["living"],play:true});
   assert.equal(writes[4].path,"/v1/me/player");
   assert.equal(document.querySelector('[data-action="shuffle"]').getAttribute("aria-pressed"),"true");
+  for (const action of ["toggle", "toggle", "previous", "next"]) {
+    document.querySelector(`[data-action="${action}"]`).click(); await flush();
+  }
+  assert.deepEqual(writes.slice(5).map(w => [w.method, w.path.split("/").pop()]), [
+    ["PUT", "pause"], ["PUT", "play"], ["POST", "previous"], ["POST", "next"],
+  ]);
+  document.querySelector('[aria-label="Volume plus"]').click(); await flush();
+  assert.equal(writes.at(-1).params.get("volume_percent"),"50");
+  document.querySelector('[aria-label="Volume moins"]').click(); await flush();
+  assert.equal(writes.at(-1).params.get("volume_percent"),"30");
+  playback.item = null;
+  playback.device = null;
+  document.querySelector('[data-action="next"]').click(); await flush();
+  assert.equal(document.querySelector(".music-device").textContent,"Aucun appareil actif");
+  assert.equal(document.querySelector(".music-position").textContent,"0:00");
+  assert.equal(document.querySelector("#music-seek").disabled,true);
   document.querySelector('[data-action="close"]').click();
   assert.equal(document.getElementById("panel").inert,false);
   dom.window.close();
@@ -405,7 +450,40 @@ test("music controls respect device restrictions and preserve a slider being edi
   ui.update({...state,supportsVolume:true,disallows:{},volumePercent:60});
   assert.equal(slider.value,"23");
   assert.equal(document.activeElement,slider);
+  ui.devices([{id:"speaker",name:"Speaker"}]);
+  ui.update({...state,status:"signed-out"});
+  document.querySelector("select").dispatchEvent(new dom.window.Event("change"));
+  assert.equal(document.querySelector('[data-action="transfer"]').disabled,true);
+  ui.devices([{id:"speaker",name:"Speaker"}]);
+  assert.equal(document.querySelector('[data-action="transfer"]').disabled,true);
   dom.window.close();
+});
+
+test("weather cache isolates location, timezone and units", () => {
+  const base = {...config, location:{lat:45.167,lon:-73.517}};
+  const key = weatherCacheKey(base);
+  assert.notEqual(key, weatherCacheKey({...base,location:{lat:46,lon:-73.517}}));
+  assert.notEqual(key, weatherCacheKey({...base,units:{temp:"fahrenheit",wind:"mph"}}));
+  assert.notEqual(key, weatherCacheKey({...base,timezone:"UTC"}));
+});
+
+test("Spotify honors Retry-After across controls without sending another request", async (t) => {
+  t.mock.property(globalThis,"localStorage",storage());
+  localStorage.setItem("maison-panel:spotify-tokens",JSON.stringify({accessToken:"fixture",expiresAt:Date.now()+3600000}));
+  const fetch = t.mock.method(globalThis,"fetch",async()=>({ok:false,status:429,headers:new Headers({"Retry-After":"90"})}));
+  await assert.rejects(requestSpotify("rate-limit-fixture","GET",""),error=>error.status===429 && error.retryAfterMs===90000);
+  await assert.rejects(requestSpotify("rate-limit-fixture","PUT","/play"),error=>error.status===429);
+  assert.equal(fetch.mock.callCount(),1);
+});
+
+test("Spotify repeated unauthorized response requires reconnect instead of endless refresh", async (t) => {
+  t.mock.property(globalThis,"localStorage",storage());
+  localStorage.setItem("maison-panel:spotify-tokens",JSON.stringify({accessToken:"fixture",refreshToken:"refresh",expiresAt:Date.now()+3600000}));
+  t.mock.method(globalThis,"fetch",async url=>String(url).includes("/api/token")
+    ? {ok:true,json:async()=>({access_token:"new",expires_in:3600})}
+    : {ok:false,status:401});
+  assert.deepEqual(await requestSpotify("expired-fixture","GET",""),{signedOut:true});
+  assert.equal(localStorage.getItem("maison-panel:spotify-tokens"),null);
 });
 
 test("markets show all four benchmarks in a separate origin without exposing app storage", async (t) => {

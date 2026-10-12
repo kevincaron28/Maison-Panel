@@ -2,8 +2,8 @@
 // section means and why (§4 config, §5 tile specs, §9 build order / open questions).
 
 export const CONFIG = {
-  ui: { defaultTheme: "night", hourlyCount: 5, hourlyStep: 3 },
-  location: { lat: 45.167, lon: -73.517, label: "Maison" }, // Sherrington, QC (J0L 2N0) — brief §11.5 answered
+  ui: { defaultTheme: "auto", hourlyCount: 5, hourlyStep: 3 },
+  location: { lat: 45.167, lon: -73.517, label: "Sherrington" }, // Confirmed home municipality; Celsius, Toronto time.
   timezone: "America/Toronto",
   locale: "fr-CA", // TODO: confirm French vs English on the panel (brief §11.3)
   units: { temp: "celsius", wind: "kmh" },

@@ -40,15 +40,38 @@ Android navigation controls hidden before changing the T13 breakpoint.
 
 ## Configuration
 
-The default interface is **Nuit calme**, with the welcome **Bienvenue, famille Caron.**
-`config.js` → `ui` controls the default theme and compact hourly forecast. A previously selected
-theme is remembered per browser. See [layout research](docs/layout-research.md) for the design
+The default interface follows **Sherrington sunrise/sunset**: light by day, dark at night,
+calculated locally without requiring weather connectivity. The theme button cycles Auto / Light /
+Dark and remembers that choice. Weather adds subtle static rain, wind, snow, cloud or clear-sky
+accents; cached weather uses a neutral appearance. Active fishing periods show an amber indicator,
+with a stronger accent for major periods rated at least 3/4 (solunar indication, not a catch guarantee).
+
+**Bonjour** restores normal brightness and automatic appearance. **Absent** dims the panel to 55%
+and requests a Spotify pause. **Bonne nuit** requests a pause and dims it to 35%; the next
+sunrise restores normal brightness. Neither preset automatically starts music or controls house
+devices. Status text reports unavailable Spotify sessions. Modes persist in this browser, and
+reloading never repeats a music command. These are visual brightness adjustments, not Android
+hardware brightness controls. `config.js` → `ui` controls the compact hourly forecast.
+See [layout research](docs/layout-research.md) for the design
 comparison, rationale and remaining private-agenda limitation.
 
 Everything you'd tune — location, units, refresh intervals, API keys, market symbols, camera feeds —
 lives in [`config.js`](config.js). That's the only file meant to be hand-edited day to day.
 
 ## Status
+
+Dedicated pages: **[Markets](markets.html)** includes ETF charts, economic calendar, selected
+official economic-release reminders, trading hours and Canadian-market resources.
+**[Fishing](fishing.html)** includes today/tomorrow solunar windows, seven-day weather, a daily
+device-local trip checklist and official Québec zone/permit links.
+
+Home alerts combine forecast-based weather indicators, selected economic events, and reminders
+entered in **Settings → Rappels importants**. Alerts are displayed while the page is open;
+they are not phone notifications or official emergency warnings. Personal reminders stay in the
+current browser, do not upload to the public site, and are not read from the Google Calendar iframe.
+Economic reminder dates are a documented selection checked October 12, 2026, through December 31,
+2026; update `js/economic-events.js` when schedules change. TradingView's live economic widget is
+separate and does not automatically supply the alert list. Expired schedule coverage is flagged.
 
 The existing production dashboard is hosted at
 [`maison-panel.kcaron.workers.dev`](https://maison-panel.kcaron.workers.dev):

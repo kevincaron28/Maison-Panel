@@ -4,6 +4,12 @@ import { getMoonIllumination, getMoonPosition, getMoonTimes, getTimes } from "..
 
 const MINUTE_MS = 60 * 1000;
 
+export function fishingWindow(periods, stars, now = Date.now()) {
+  const windows = periods.filter(p => Math.abs(now - +p.center) <= p.halfWidthMin * MINUTE_MS);
+  const active = windows.find(p => p.kind === "major") || windows[0];
+  return active ? (active.kind === "major" && stars >= 3 ? "optimal" : "active") : "inactive";
+}
+
 function startOfLocalDay(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -35,7 +41,9 @@ function findMoonExtrema(dayStart, lat, lon) {
 export function computeDayPeriods(dayStart, lat, lon) {
   const { transit, underfoot } = findMoonExtrema(dayStart, lat, lon);
   const moonTimes = getMoonTimes(dayStart, lat, lon);
-  const sunTimes = getTimes(dayStart, lat, lon);
+  const noon = new Date(dayStart);
+  noon.setHours(12);
+  const sunTimes = getTimes(noon, lat, lon);
 
   const periods = [];
   if (transit) periods.push({ kind: "major", label: "moon transit", center: transit, halfWidthMin: 60 });
@@ -189,6 +197,17 @@ export function initSolunar(config, root) {
     render(root, config, models[selectedDay]);
     for (const button of buttons) button.setAttribute("aria-pressed", String(Number(button.dataset.fishingDay) === selectedDay));
     updateCountdown(root, config, periods);
+    updateHomeFishing();
+  }
+  function updateHomeFishing() {
+    const state = fishingWindow(periods, models[0]?.stars || 0);
+    document.documentElement.dataset.fishing = state;
+    const banner = document.getElementById("fishing-now");
+    if (banner) {
+      banner.hidden = state === "inactive";
+      banner.textContent = state === "optimal" ? "Pêche · créneau solunaire favorable" : "Pêche · période solunaire active";
+      banner.title = "Indication solunaire, sans garantie de prises. Vérifiez les conditions météo avant de partir.";
+    }
   }
   for (const button of buttons) button.addEventListener("click", () => {
     selectedDay = Number(button.dataset.fishingDay);
@@ -216,5 +235,5 @@ export function initSolunar(config, root) {
 
   recompute();
   setInterval(recompute, config.refresh.solunar);
-  setInterval(() => updateCountdown(root, config, periods), 15 * 1000);
+  setInterval(() => { updateCountdown(root, config, periods); updateHomeFishing(); }, 15 * 1000);
 }

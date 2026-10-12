@@ -145,7 +145,7 @@ export function initMarkets(config, root) {
     // scripts run in Maison's origin or gain access to Spotify/device storage.
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox");
     const widget = {
-      colorTheme: "dark", dateRange: "1M", showChart: false, width: "100%", height: 310,
+      colorTheme: document.documentElement.dataset.theme === "paper" ? "light" : "dark", dateRange: "1M", showChart: root.dataset.detail === "true", width: "100%", height: root.dataset.detail === "true" ? 540 : 310,
       isTransparent: false, showSymbolLogo: false,
       tabs: [{ title: "Indices · ETF", symbols: [
         { s: "AMEX:SPY", d: "S&P 500 · SPY" },
@@ -156,6 +156,13 @@ export function initMarkets(config, root) {
       utm_source: location.hostname, utm_medium: "widget_new", utm_campaign: "market-overview",
     };
     frame.src = "https://www.tradingview-widget.com/embed-widget/market-overview/?locale=fr#" + encodeURIComponent(JSON.stringify(widget));
+    const observer = new document.defaultView.MutationObserver(() => {
+      const theme = document.documentElement.dataset.theme === "paper" ? "light" : "dark";
+      if (theme === widget.colorTheme) return;
+      widget.colorTheme = theme;
+      frame.src = "https://www.tradingview-widget.com/embed-widget/market-overview/?locale=fr#" + encodeURIComponent(JSON.stringify(widget));
+    });
+    observer.observe(document.documentElement, {attributes:true,attributeFilter:["data-theme"]});
     frame.className = "markets-widget";
     root.querySelector(".market-list").replaceChildren(frame);
     const attribution = document.createElement("a");
@@ -172,7 +179,7 @@ export function initMarkets(config, root) {
     retry.textContent = "Recharger les marchés";
     retry.addEventListener("click", () => { frame.src = frame.src; });
     root.appendChild(retry);
-    return;
+    return { stop: () => observer.disconnect() };
   }
   let interval = config.refresh.markets;
   let current = loadCache(CACHE_KEY);

@@ -8,7 +8,7 @@ if (path.dirname(output) !== root || path.basename(output) !== "dist")
 await rm(output, { recursive: true, force: true });
 await mkdir(output);
 // Only public runtime assets; never repository history, docs, tests or development dependencies.
-for (const file of ["index.html", "settings.html", "config.js", "_headers"])
+for (const file of ["index.html", "markets.html", "fishing.html", "settings.html", "config.js", "_headers"])
   await cp(path.join(root, file), path.join(output, file));
 for (const dir of ["css", "js", "vendor", "fonts"]) {
   await mkdir(path.join(output, dir));

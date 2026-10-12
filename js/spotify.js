@@ -19,6 +19,7 @@ const STATE_KEY = "spotify-pkce-state";
 import { fetchJson } from "./network.js";
 import { createMusicControls } from "./music-controls.js";
 let refreshInFlight = null;
+const retryAfterByClient = new Map();
 
 export function redirectUri(page = location) {
   // One registered callback per origin. /index.html and query parameters must not
@@ -201,6 +202,10 @@ async function apiRequest(method, path, accessToken, params, body) {
     if (!res.ok) {
       const error = new Error(`spotify api ${method} ${path} ${res.status}`);
       error.status = res.status;
+      if (res.status === 429) {
+        const seconds = Number(res.headers?.get("Retry-After"));
+        error.retryAfterMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 30000;
+      }
       throw error;
     }
     const text = await res.text();
@@ -211,17 +216,26 @@ async function apiRequest(method, path, accessToken, params, body) {
 }
 
 export async function requestSpotify(clientId, method, path, params, body) {
+  const remaining = (retryAfterByClient.get(clientId) || 0) - Date.now();
+  if (remaining > 0) throw Object.assign(new Error("Spotify rate limit"), { status: 429, retryAfterMs: remaining });
   let token = await getValidAccessToken(clientId);
   if (!token) return { signedOut: true };
   try {
     return await apiRequest(method, path, token, params, body);
   } catch (err) {
+    if (err.status === 429) retryAfterByClient.set(clientId, Date.now() + err.retryAfterMs);
     if (err.status !== 401) throw err;
     const saved = loadTokens();
     if (saved) saveTokens({ ...saved, expiresAt: 0 });
     token = await getValidAccessToken(clientId);
     if (!token) return { signedOut: true };
-    return await apiRequest(method, path, token, params, body);
+    try {
+      return await apiRequest(method, path, token, params, body);
+    } catch (retryError) {
+      if (retryError.status === 429) retryAfterByClient.set(clientId, Date.now() + retryError.retryAfterMs);
+      if (retryError.status === 401) { clearTokens(); return { signedOut: true }; }
+      throw retryError;
+    }
   }
 }
 
@@ -298,10 +312,10 @@ function render(root, state, actions) {
   volUpBtn.setAttribute("aria-label", "Volume plus");
   volUpBtn.textContent = "+";
   volUpBtn.addEventListener("click", () => actions.volume(10));
-  volDownBtn.disabled = volUpBtn.disabled = state.supportsVolume === false || state.restricted || state.busy;
-  prevBtn.disabled = Boolean(state.busy || state.restricted || state.disallows?.skipping_prev);
-  nextBtn.disabled = Boolean(state.busy || state.restricted || state.disallows?.skipping_next);
-  playBtn.disabled = Boolean(state.busy || state.restricted || state.disallows?.[state.isPlaying ? "pausing" : "resuming"]);
+  volDownBtn.disabled = volUpBtn.disabled = state.supportsVolume === false || state.restricted || state.busy || state.unavailable;
+  prevBtn.disabled = Boolean(state.busy || state.unavailable || state.restricted || state.disallows?.skipping_prev);
+  nextBtn.disabled = Boolean(state.busy || state.unavailable || state.restricted || state.disallows?.skipping_next);
+  playBtn.disabled = Boolean(state.busy || state.unavailable || state.restricted || state.disallows?.[state.isPlaying ? "pausing" : "resuming"]);
 
   volume.append(volDownBtn, volUpBtn);
   body.appendChild(volume);
@@ -318,6 +332,7 @@ export function initSpotify(config, root) {
   const state = { status: "signed-out", volumePercent: 50, repeat: "off", disallows: {}, busy: false };
   let authError = "";
   let polling = null;
+  let failures = 0;
   const more = document.createElement("button");
   more.type = "button";
   more.className = "music-more";
@@ -343,6 +358,9 @@ export function initSpotify(config, root) {
   async function pollPlayback() {
     try {
       const data = await requestSpotify(cfg.clientId, "GET", "");
+      failures = 0;
+      state.unavailable = false;
+      if (!state.busy) state.feedback = "";
       if (data?.signedOut) {
         state.status = "signed-out";
         state.feedback = authError;
@@ -353,6 +371,14 @@ export function initSpotify(config, root) {
         state.status = "idle";
         state.isPlaying = false;
         state.deviceName = data?.device?.name || "";
+        state.deviceId = data?.device?.id;
+        state.restricted = Boolean(data?.device?.is_restricted);
+        state.supportsVolume = data?.device?.supports_volume !== false;
+        state.track = null;
+        state.durationMs = state.progressMs = 0;
+        state.artwork = null;
+        state.shuffle = false;
+        state.repeat = "off";
         state.disallows = {};
       } else {
         state.status = "playing";
@@ -379,12 +405,16 @@ export function initSpotify(config, root) {
       }
       paint();
     } catch (err) {
+      failures++;
+      state.unavailable = true;
       console.warn("[spotify] now-playing poll failed", err);
       if (err.message === "unauthorized") {
         const tokens = loadTokens();
         if (tokens) saveTokens({ ...tokens, expiresAt: 0 });
       }
-      state.feedback = err.code === "invalid_client"
+      state.feedback = err.status === 429
+        ? "Spotify demande une pause · reprise automatique après le délai."
+        : err.code === "invalid_client"
         ? "Configuration Spotify à vérifier · Aide connexion"
         : "Spotify indisponible · nouvel essai automatique";
       paint();
@@ -393,7 +423,7 @@ export function initSpotify(config, root) {
   }
 
   async function act(method, path, params, body) {
-    if (state.busy) return;
+    if (state.busy || state.unavailable || state.status === "signed-out") return;
     state.busy = true;
     state.feedback = "Envoi de la commande…";
     paint();
@@ -408,9 +438,12 @@ export function initSpotify(config, root) {
       }
       state.feedback = "Commande envoyée";
       await pollNowPlaying();
+      return true;
     } catch (err) {
       console.warn("[spotify] control action failed", err);
-      state.feedback = err.status === 403
+      state.feedback = err.status === 429
+        ? "Spotify demande une pause · réessayez après le délai."
+        : err.status === 403
         ? "Commande refusée · vérifiez Spotify Premium et l’accès à l’application."
         : err.status === 404
           ? "Aucun appareil actif · lancez Spotify sur votre enceinte ou téléphone."
@@ -433,13 +466,20 @@ export function initSpotify(config, root) {
     next: () => act("POST", "/next"),
     volume: (delta) => actions.setVolume(state.volumePercent + delta),
     setVolume: (value) => act("PUT", "/volume", {volume_percent: Math.max(0, Math.min(100, Math.round(value)))}),
-    seek: (value) => act("PUT", "/seek", {position_ms: Math.max(0, Math.min(state.durationMs - 1, Math.round(value)))}),
+    seek: (value) => act("PUT", "/seek", {position_ms: Math.max(0, Math.min((state.durationMs || 1) - 1, Math.round(value)))}),
     shuffle: () => act("PUT", "/shuffle", {state: !state.shuffle}),
     repeat: () => act("PUT", "/repeat", {state: {off:"context",context:"track",track:"off"}[state.repeat] || "off"}),
     transfer: (id) => id && act("PUT", "", undefined, {device_ids:[id],play:Boolean(state.isPlaying)}),
     devices: async () => {
       try {
         const data = await requestSpotify(cfg.clientId, "GET", "/devices");
+        if (data?.signedOut) {
+          state.status = "signed-out";
+          state.feedback = "Session expirée · reconnectez Spotify.";
+          music.devices([]);
+          paint();
+          return;
+        }
         music.devices(data?.devices || []);
       } catch {
         state.feedback = "Impossible de charger les appareils. Réessayez avec Actualiser.";
@@ -451,8 +491,11 @@ export function initSpotify(config, root) {
   more.addEventListener("click", () => music.open());
 
   async function tick() {
-    await pollNowPlaying();
-    setTimeout(tick, cfg.refresh);
+    if (!state.busy) await pollNowPlaying();
+    const base = Math.max(5000, cfg.refresh || 10000);
+    const idleDelay = state.isPlaying && document.visibilityState !== "hidden" ? base : Math.max(base, 30000);
+    const backoff = Math.min(300000, base * 2 ** Math.min(failures, 6));
+    setTimeout(tick, Math.max(idleDelay, backoff, (retryAfterByClient.get(cfg.clientId) || 0) - Date.now()));
   }
 
   (async () => {
@@ -465,4 +508,16 @@ export function initSpotify(config, root) {
     }
     tick();
   })();
+  return {
+    async pauseForMode() {
+      if (state.busy) return "Spotify occupé · réessayez le mode pour mettre en pause.";
+      await pollNowPlaying();
+      if (state.status === "signed-out") return "Spotify non connecté · aucune pause envoyée.";
+      if (state.unavailable) return "Spotify indisponible · pause non confirmée.";
+      if (!state.isPlaying) return "Spotify est déjà en pause ou inactif.";
+      if (state.restricted || state.disallows?.pausing) return "Cet appareil ne permet pas la pause depuis le panneau.";
+      const sent = await act("PUT", "/pause");
+      return sent ? "Commande de pause Spotify envoyée." : "Pause Spotify non confirmée · vérifiez le lecteur.";
+    },
+  };
 }

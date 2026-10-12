@@ -20,6 +20,7 @@ export function createMusicControls(root, actions) {
   document.body.appendChild(dialog);
   const q = (s) => dialog.querySelector(s);
   let current = {}, returnFocus = null, deviceSignature = "";
+  const transferBlocked = () => !q("select").value || current.busy || current.unavailable || current.restricted || current.status === "signed-out" || Boolean(current.disallows?.transferring_playback);
   const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}`;
   function close() {
     dialog.hidden = true;
@@ -45,7 +46,7 @@ export function createMusicControls(root, actions) {
   q("#music-seek").addEventListener("change", e => actions.seek(Number(e.target.value)));
   q("#music-volume").addEventListener("input", e => { q(".music-volume-value").textContent = `${e.target.value}%`; });
   q("#music-volume").addEventListener("change", e => actions.setVolume(Number(e.target.value)));
-  q("select").addEventListener("change", () => { q('[data-action="transfer"]').disabled = !q("select").value || current.busy || Boolean(current.disallows?.transferring_playback); });
+  q("select").addEventListener("change", () => { q('[data-action="transfer"]').disabled = transferBlocked(); });
 
   return {
     open() {
@@ -58,9 +59,9 @@ export function createMusicControls(root, actions) {
     update(state) {
       current = state;
       const playing = state.status === "playing";
-      const blocked = state.busy || state.restricted || !playing;
+      const blocked = state.busy || state.unavailable || state.restricted || !playing;
       const disallows = state.disallows || {};
-      q(".music-track").textContent = playing ? state.track.name : "Spotify connecté";
+      q(".music-track").textContent = playing ? state.track.name : state.status === "signed-out" ? "Session Spotify expirée" : "Spotify connecté";
       q(".music-artist").textContent = playing ? state.track.artists : "Lancez une musique depuis Spotify pour commencer.";
       q(".music-device").textContent = state.deviceName || "Aucun appareil actif";
       const image = q("img");
@@ -89,7 +90,8 @@ export function createMusicControls(root, actions) {
         q(".music-volume-value").textContent = `${state.volumePercent}%`;
       }
       q(".music-volume-note").textContent = playing && !state.supportsVolume ? "Réglez le volume sur cet appareil." : "";
-      q('[data-action="transfer"]').disabled = Boolean(!q("select").value || state.busy || disallows.transferring_playback);
+      q('[data-action="transfer"]').disabled = Boolean(!q("select").value || state.busy || state.unavailable || state.status === "signed-out" || state.restricted || disallows.transferring_playback);
+      q('[data-action="devices"]').disabled = state.status === "signed-out" || Boolean(state.busy);
       q(".music-feedback").textContent = state.feedback || "";
     },
     devices(devices) {
@@ -108,7 +110,7 @@ export function createMusicControls(root, actions) {
         select.value = allowed.some(d=>d.id === previous) ? previous : (allowed.find(d=>d.is_active)?.id || allowed[0]?.id || "");
       }
       q(".music-device-note").textContent = allowed.length ? "Le transfert conserve l’état lecture/pause." : "Aucun appareil disponible. Ouvrez Spotify sur votre téléphone ou enceinte, puis actualisez.";
-      q('[data-action="transfer"]').disabled = !allowed.length || current.busy || Boolean(current.disallows?.transferring_playback);
+      q('[data-action="transfer"]').disabled = transferBlocked();
     },
   };
 }

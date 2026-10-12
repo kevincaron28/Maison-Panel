@@ -1,5 +1,8 @@
 # Music and connected devices
 
+For the proposed TV/soundbar + Google speaker setup and migration to the old Dell,
+see [the portable local-server plan](local-server-plan.md). This is a design proposal, not an installed service.
+
 ## Server-free setup now
 
 1. In Google Home on a phone connected to the same Wi-Fi, create a speaker group containing

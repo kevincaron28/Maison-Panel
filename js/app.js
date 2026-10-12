@@ -1,5 +1,7 @@
+import { initAppearance } from "./appearance.js";
+import { initAlerts } from "./alerts.js";
 import { CONFIG } from "../config.js";
-import { createDailyReloadCheck, zonedParts } from "./runtime.js";
+import { createDailyReloadCheck } from "./runtime.js";
 
 function safeInit(name, fn) {
   try {
@@ -15,19 +17,6 @@ function setupOfflineIndicator() {
   window.addEventListener("online", update);
   window.addEventListener("offline", update);
   update();
-}
-
-function setupNightMode(config) {
-  function apply() {
-    const hour = zonedParts(new Date(), config.timezone).hour;
-    const { start, end, dimTo } = config.night;
-    const isNight =
-      start > end ? hour >= start || hour < end : hour >= start && hour < end;
-    document.body.style.setProperty("--night-opacity", dimTo);
-    document.body.classList.toggle("is-night", isNight);
-  }
-  apply();
-  setInterval(apply, 5 * 60 * 1000);
 }
 
 // Shift the whole panel a few px on a slow cycle so a static clock/labels don't ghost into an
@@ -82,8 +71,9 @@ async function loadTile(name, path, exportName, id) {
   const root = document.getElementById(id);
   try {
     const module = await import(path);
-    await module[exportName](CONFIG, root);
+    const instance = await module[exportName](CONFIG, root);
     if (name === "clock") window.dispatchEvent(new Event("maison-ready"));
+    return instance;
   } catch (err) {
     console.warn(`[app] ${name} failed to load`, err);
     const message = document.createElement("p");
@@ -95,13 +85,13 @@ async function loadTile(name, path, exportName, id) {
 }
 
 function main() {
+  safeInit("alerts", () => initAlerts(CONFIG, document.getElementById("daily-alerts")));
   loadTile("layout", "./dashboard.js", "initDashboard", "panel");
   loadTile("clock", "./clock.js", "initClock", "tile-header");
   loadTile("weather", "./weather.js", "initWeather", "tile-weather");
   loadTile("solunar", "./solunar.js", "initSolunar", "tile-solunar");
-  loadTile("markets", "./markets.js", "initMarkets", "tile-markets");
   loadTile("calendar", "./calendar.js", "initCalendar", "tile-calendar");
-  loadTile("spotify", "./spotify.js", "initSpotify", "tile-spotify");
+  const spotifyReady = loadTile("spotify", "./spotify.js", "initSpotify", "tile-spotify");
   if (
     CONFIG.camera.feeds.some(
       (feed) => feed.enabled !== false && feed.snapshotUrl,
@@ -110,7 +100,9 @@ function main() {
     loadTile("camera", "./camera.js", "initCamera", "tile-cameras");
   }
   safeInit("offline indicator", setupOfflineIndicator);
-  safeInit("night mode", () => setupNightMode(CONFIG));
+  safeInit("appearance", () => initAppearance(CONFIG, document, {
+    pauseMusic: async () => (await spotifyReady)?.pauseForMode() ?? "Spotify non configuré.",
+  }));
   safeInit("burn-in shift", setupBurnInShift);
   safeInit("daily reload", () => setupDailyReload(CONFIG));
 }

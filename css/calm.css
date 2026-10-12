@@ -20,7 +20,42 @@
   --line: #c9cebe;
   --up: #305e3a;
   --down: #9b3434;
+  --solunar: #805010;
   color-scheme: light;
+}
+/* Weather accents keep the day/night palette readable; no flashing or motion. */
+:root { --weather-glow: transparent; }
+:root[data-weather="clear"][data-daylight="true"] { --weather-glow: #c9dba12b; }
+:root[data-weather="clear"][data-daylight="false"] { --weather-glow: #9db5db20; }
+:root[data-weather="rain"] { --weather-glow: #559bcc25; }
+:root[data-weather="wind"] { --weather-glow: #63b9a52b; }
+:root[data-weather="snow"] { --weather-glow: #a4cfe82e; }
+:root[data-weather="fog"], :root[data-weather="cloudy"] { --weather-glow: #899baf22; }
+:root[data-weather="storm"] { --weather-glow: #9984c02b; }
+.weather-summary {
+  background: radial-gradient(ellipse at 85% 40%, var(--weather-glow), transparent 75%);
+  border-radius: 24px;
+  padding: 12px 16px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.weather-summary::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.12; pointer-events: none; }
+:root[data-weather="rain"] .weather-summary::before { background: repeating-linear-gradient(115deg, transparent 0 32px, var(--tide) 33px 34px, transparent 35px 66px); }
+:root[data-weather="wind"] .weather-summary::before { background: repeating-linear-gradient(175deg, transparent 0 42px, var(--tide) 43px 44px, transparent 45px 78px); }
+:root[data-weather="snow"] .weather-summary::before { background-image: radial-gradient(circle, var(--tide) 1px, transparent 2px); background-size: 28px 28px; }
+.home-modes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.home-modes button { padding: 8px 12px; font-size: 18px; }
+.home-modes [aria-pressed="true"] { background: var(--ground-raised); border-color: var(--tide); }
+#home-mode-status { color: var(--ink-mid); font-size: 14px; line-height: 1.35; margin-top: 6px; max-width: 460px; }
+#fishing-now { font-size: 16px; color: var(--solunar); border-left: 3px solid var(--solunar); padding-left: 10px; margin-top: 8px; }
+:root[data-fishing="optimal"] .home-nav a[href="fishing.html"] { border-color: var(--solunar); color: var(--solunar); }
+:root[data-fishing="optimal"] .weather-summary { box-shadow: inset 0 -2px var(--solunar); }
+@media (min-width: 851px) and (max-height: 850px) {
+  #tile-header .clock-time { font-size: 76px; }
+  #tile-header .greeting { font-size: 18px; }
+  #tile-header .clock-date { margin-top: 2px; font-size: 18px; }
+  #tile-header { justify-content: flex-start; }
 }
 * {
   box-sizing: border-box;
@@ -479,8 +514,19 @@ h2 {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
+.explorer.is-detail .explorer-grid { grid-template-columns: 1fr; }
+.explorer-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
+.explorer-tabs [aria-pressed="true"] { background: var(--tide); color: var(--ground); }
+#explorer-menu { max-width: 800px; line-height: 1.6; }
+#explorer-menu button { display: block; width: 100%; text-align: left; margin: 16px 0; padding: 20px; }
 .home-caption { display: none; }
 .panel-shortcut { font-weight: 600; }
+.daily-alerts { max-height: 100px; overflow: auto; font-size: 16px; line-height: 1.4; }
+.daily-alert { display: block; padding: 8px 10px; margin: 4px 0; border-left: 3px solid var(--tide); background: var(--ground-raised); text-decoration: none; }
+.daily-alert.is-danger { border-color: var(--down); color: var(--down); font-weight: 600; }
+.reminders-link { font-size: 14px; display: block; margin: 6px 0; }
+.home-nav a.panel-shortcut { padding: 12px 16px; text-decoration: none; font-size: 16px; }
+#explorer-menu a { display: block; padding: 20px; margin: 16px 0; border: 1px solid var(--line); border-radius: 20px; text-decoration: none; }
 .fishing-summary { display: flex; align-items: center; gap: 24px; margin: 20px 0; }
 .fishing-summary .moon-disc { flex: 0 0 96px; }
 .fishing-sun { font-size: 18px; color: var(--ink-mid); padding: 12px 0; border-top: 1px solid var(--line); }
@@ -714,8 +760,8 @@ button:disabled,input:disabled { opacity: .45; cursor: default; }
 #today-strip.is-stale {
   opacity: 0.7;
 }
-body.is-night #panel {
-  opacity: var(--night-opacity, 0.5);
+body.is-night {
+  filter: brightness(var(--night-opacity, 0.5));
 }
 @media (max-height: 740px) and (min-width: 851px) {
   #panel {
@@ -827,4 +873,8 @@ body.is-night #panel {
   #panel {
     transition: none;
   }
+}
+
+@media (min-width: 851px) {
+  #tile-main { grid-template-rows: auto minmax(0, 1fr); }
 }

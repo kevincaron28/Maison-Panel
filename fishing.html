@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pêche · Maison</title>
+<link rel="stylesheet" href="css/calm.css">
+<link rel="stylesheet" href="css/details.css">
+</head>
+<body class="detail-page" data-page="fishing">
+<div id="panel">
+<nav class="home-nav" aria-label="Navigation principale">
+<a class="wordmark" href="./">maison.</a>
+<div>
+<a href="./">Accueil</a>
+<a href="fishing.html">Pêche</a>
+<a href="markets.html">Marchés</a>
+<button id="theme-toggle" type="button">Thème auto</button>
+</div>
+</nav>
+<header class="page-heading">
+<p class="eyebrow">MAISON / PÊCHE</p>
+<h1>Pêche</h1>
+<p>Sherrington · lune, périodes favorables et météo pour préparer votre sortie.</p>
+<p id="home-mode-status" hidden>
+</p>
+</header>
+<main>          <section id="tile-solunar" class="detail-card">
+            <h2>Fenêtres de pêche · aujourd’hui et demain</h2>
+<p id="fishing-now" hidden>
+</p>
+            <div class="fishing-summary">
+<span class="moon-disc" aria-hidden="true">
+</span>
+<div>
+<div class="moon-phase-label">
+</div>
+<div class="day-rating" aria-label="Indice solunaire">
+</div>
+</div>
+</div>
+            <div class="solunar-details">
+              <div class="next-period">
+</div>
+              <div class="fishing-sun">
+</div>
+              <div class="fishing-day-controls" aria-label="Jour de pêche">
+<button type="button" data-fishing-day="0" aria-pressed="true">Aujourd’hui</button>
+<button type="button" data-fishing-day="1" aria-pressed="false">Demain</button>
+</div>
+              <div class="solunar-periods">
+</div>
+              <p class="fishing-note">Heures locales · fenêtres solunaires indicatives, sans garantie de prises.</p>
+            </div>
+          </section>
+        <section id="tile-weather" class="detail-card" aria-label="Météo pour la pêche">
+          <div class="weather-summary">
+            <h2 class="section-label">
+              Météo locale <span class="weather-location">
+</span>
+            </h2>
+            <div class="hero-temp value-fade">—°</div>
+            <div class="hero-sub">Chargement de la météo…</div>
+            <div class="today-alert" role="status" hidden>
+</div>
+          </div>
+          <div class="weather-forecast">
+            <div class="section-heading">
+              <h2>La journée, en un regard</h2>
+              <button
+                id="forecast-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="forecast-days"
+              >
+                7 jours
+              </button>
+            </div>
+            <div class="hourly-strip">
+</div>
+            <div id="forecast-days" hidden>
+<div class="daily-rows">
+</div>
+</div>
+            <section id="today-strip" aria-label="Conditions du jour">
+              <div class="today-metric" data-metric="uv">
+</div>
+              <div class="today-metric" data-metric="rain">
+</div>
+              <div class="today-metric" data-metric="wind">
+</div>
+              <div class="today-metric" data-metric="air">
+</div>
+              <div class="today-daylight">
+                <div class="today-daylight-heading">
+                  <span>Jour</span>
+<span class="daylight-percent">
+</span>
+                </div>
+                <div class="daylight-track">
+<span>
+</span>
+</div>
+                <div class="today-daylight-times">
+</div>
+              </div>
+            </section>
+            <div class="stale-note" role="status">
+</div>
+            <div class="attribution">Météo : Open-Meteo · CC BY 4.0</div>
+          </div>
+        </section>
+<div class="detail-grid">
+<section class="detail-card">
+<h2>Préparer la sortie</h2>
+<p>Liste personnelle, enregistrée dans ce navigateur pour aujourd’hui.</p>
+<div class="trip-checklist">
+<label>
+<input type="checkbox" data-trip="permit"> Permis et règles du plan d’eau vérifiés</label>
+<label>
+<input type="checkbox" data-trip="weather"> Vent, rafales et orages vérifiés</label>
+<label>
+<input type="checkbox" data-trip="gear"> Matériel et équipement de flottaison prêts</label>
+<label>
+<input type="checkbox" data-trip="plan"> Lieu et heure de retour partagés</label>
+</div>
+<p id="trip-status" role="status">
+</p>
+</section>
+<section class="detail-card">
+<h2>Règles et permis au Québec</h2>
+<p>Choisissez la zone du plan d’eau où vous pêchez : la météo de Sherrington ne détermine pas votre zone de pêche. Les espèces, périodes et limites varient selon le lieu.</p>
+<div class="resource-links">
+<a href="https://www.quebec.ca/tourisme-loisirs-sport/activites-sportives-et-de-plein-air/peche-sportive/zones-periodes/zones-de-peche" target="_blank" rel="noopener">Carte des zones et périodes ↗</a>
+<a href="https://www.quebec.ca/tourisme-loisirs-sport/activites-sportives-et-de-plein-air/peche-sportive/permis" target="_blank" rel="noopener">Permis de pêche ↗</a>
+</div>
+</section>
+<section class="detail-card">
+<h2>Lire les fenêtres solunaires</h2>
+<p>
+<strong>Majeure :</strong> deux heures autour du passage de la lune au zénith ou au nadir. <strong>Mineure :</strong> une heure autour du lever ou du coucher de lune.</p>
+<p>L’indice sur 4 reflète la phase lunaire et la proximité du lever ou du coucher du soleil. L’accent ambré signale une période active; le repère favorable exige une période majeure et au moins 3/4.</p>
+<p>Ces indications ne prédisent pas les prises. Les conditions du plan d’eau et la météo restent essentielles.</p>
+</section>
+</div>
+</main>
+<footer class="detail-footer">
+<a href="./">← Retour à la maison</a>
+<a href="settings.html">Réglages</a>
+<span id="detail-network" role="status">
+</span>
+</footer>
+</div>
+<script type="module" src="js/details.js">
+</script>
+</body>
+</html>

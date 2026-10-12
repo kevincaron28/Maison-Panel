@@ -3,32 +3,26 @@ export function initDashboard(config, root) {
   if (!opener) return;
   const explorer = document.getElementById("tile-side");
   const closer = document.getElementById("explorer-close");
-  const theme = document.getElementById("theme-toggle");
-  function applyTheme(value) {
-    document.documentElement.dataset.theme = value;
-    theme.textContent = value === "paper" ? "Thème sombre" : "Thème clair";
-  }
-  try {
-    const saved = localStorage.getItem("maison-panel:theme");
-    applyTheme(
-      ["night", "paper"].includes(saved)
-        ? saved
-        : config.ui?.defaultTheme || "night",
-    );
-  } catch {
-    applyTheme(config.ui?.defaultTheme || "night");
-  }
-  theme.addEventListener("click", () => {
-    const value =
-      document.documentElement.dataset.theme === "paper" ? "night" : "paper";
-    applyTheme(value);
-    try {
-      localStorage.setItem("maison-panel:theme", value);
-    } catch {
-      /* session-only theme */
-    }
-  });
   let returnFocus = opener;
+  const panels = [...explorer.querySelectorAll(".explorer-grid > section")];
+  const menu = document.getElementById("explorer-menu");
+  const titles = { "tile-solunar": "Pêche & lune", "tile-markets": "Marchés", "tile-cameras": "Caméras" };
+  if (config.camera?.feeds?.some(feed => feed.enabled !== false && feed.snapshotUrl)) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.panel = "tile-cameras";
+    button.textContent = "Caméras";
+    explorer.querySelector(".explorer-tabs")?.appendChild(button);
+  }
+  function selectPanel(id = "") {
+    for (const panel of panels) panel.hidden = panel.id !== id;
+    if (menu) menu.hidden = Boolean(id);
+    explorer.classList.toggle("is-detail", Boolean(id));
+    document.getElementById("explorer-title").textContent = titles[id] || "Explorer la maison";
+    for (const button of explorer.querySelectorAll("[data-panel]"))
+      button.setAttribute("aria-pressed", String(button.dataset.panel === id));
+    explorer.scrollTop = 0;
+  }
   function toggle(open, trigger = opener) {
     if (open) returnFocus = trigger;
     explorer.hidden = !open;
@@ -41,10 +35,15 @@ export function initDashboard(config, root) {
     }
     (open ? closer : returnFocus).focus();
   }
-  opener.addEventListener("click", () => toggle(true));
+  opener.addEventListener("click", () => { selectPanel(); toggle(true); });
+  document.getElementById("explorer-menu-back")?.addEventListener("click", () => {
+    selectPanel();
+    closer.focus();
+  });
   for (const button of root.querySelectorAll("[data-panel]")) {
     button.addEventListener("click", () => {
-      toggle(true, button);
+      selectPanel(button.dataset.panel);
+      if (explorer.hidden) toggle(true, button);
       const target = document.getElementById(button.dataset.panel);
       target.setAttribute("tabindex", "-1");
       target.focus({ preventScroll: true });
@@ -59,7 +58,7 @@ export function initDashboard(config, root) {
     }
     if (event.key === "Tab") {
       const controls = [
-        ...explorer.querySelectorAll("button,a[href],input"),
+        ...explorer.querySelectorAll("button,a[href],input,select,iframe,[tabindex='0']"),
       ].filter((el) => !el.disabled && el.getClientRects().length);
       const first = controls[0],
         last = controls[controls.length - 1];
