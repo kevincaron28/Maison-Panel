@@ -1,19 +1,65 @@
 #morning-open { margin-top: 10px; font-size: 18px; min-height: 44px; color: var(--tide); }
-#morning-dialog { width: min(1180px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); box-sizing: border-box; padding: 28px; border: 1px solid var(--line); border-radius: 24px; background: var(--ground); color: var(--ink-high); overflow: auto; }
-#morning-dialog::backdrop { background: #07110bc9; backdrop-filter: blur(8px); }
-#morning-dialog h2 { font-size: clamp(28px, 3vw, 42px); margin: 6px 0; }
-#morning-dialog h3 { font-size: 23px; color: var(--tide); margin: 0 0 18px; }
-#morning-date { color: var(--ink-mid); font-size: 20px; margin: 4px 0 24px; }
-.morning-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 24px; }
-.morning-grid section { padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--ground-raised); }
-.morning-grid p { font-size: 20px; line-height: 1.5; margin: 0 0 16px; }
-.morning-grid .morning-session { color: var(--ink-mid); font-size: 18px; }
+#morning-dialog { --brief-bg: #f3f0e8; --brief-card: #e7e9dd; --brief-ink: #24382e; --brief-muted: #596657; --brief-line: #cbd2c3; --brief-accent: #315f4a; width: min(1220px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-sizing: border-box; padding: 24px; border: 1px solid var(--brief-line); border-radius: 24px; background: var(--brief-bg); color: var(--brief-ink); overflow: auto; }
+#morning-dialog::backdrop { background: #07110bba; backdrop-filter: blur(8px); }
+#morning-dialog button, #morning-dialog summary { min-height: 48px; font-size: 18px; border: 1px solid var(--brief-line); background: transparent; color: var(--brief-ink); padding: 10px 18px; border-radius: 28px; cursor: pointer; }
+#morning-dialog button:focus-visible, #morning-dialog a:focus-visible, #morning-dialog summary:focus-visible { outline: 3px solid var(--brief-accent); outline-offset: 3px; }
+#morning-dialog button:disabled { opacity: .5; cursor: wait; }
+.morning-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.morning-eyebrow { font-size: 18px; letter-spacing: .12em; color: var(--brief-muted); margin: 0 0 6px; }
+#morning-dialog h2 { font-size: clamp(28px, 3vw, 40px); font-weight: 500; margin: 0; letter-spacing: -.035em; }
+#morning-date { color: var(--brief-muted); font-size: 20px; margin: 6px 0 0; }
+.morning-designs { display: flex; align-items: center; gap: 8px; margin: 16px 0; }
+.morning-designs > span { color: var(--brief-muted); font-size: 18px; margin-right: 8px; }
+#morning-dialog .morning-designs [aria-pressed="true"] { background: var(--brief-ink); color: var(--brief-bg); border-color: var(--brief-ink); }
+.morning-grid { display: grid; grid-template-columns: 1.1fr 1fr .9fr; gap: 14px; }
+.morning-grid section { min-width: 0; padding: 20px; border: 1px solid var(--brief-line); border-radius: 18px; display: flex; flex-direction: column; }
+.morning-weather-card { background: var(--brief-card); }
+#morning-dialog h3 { font-size: 21px; font-weight: 500; margin: 0 0 16px; }
+.morning-grid small { display: block; font-size: 18px; line-height: 1.35; color: var(--brief-muted); margin-top: auto; padding-top: 14px; }
+.morning-temperature { display: flex; align-items: center; gap: 24px; }
+.morning-metric-label { display: block; font-size: 18px; color: var(--brief-muted); }
+.morning-temperature strong { font-size: clamp(90px, 9vw, 124px); font-weight: 500; letter-spacing: -.075em; line-height: 1.08; display: block; }
+.morning-temperature sup { font-size: .55em; vertical-align: top; position: relative; top: .12em; }
+.morning-low b { font-weight: 500; font-size: 40px; line-height: 1.3; }
+.morning-condition { font-size: 25px; text-transform: capitalize; margin: 6px 0 18px; }
+.morning-weather-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding-top: 16px; border-top: 1px solid var(--brief-line); }
+.morning-weather-metrics strong { font-size: 30px; font-weight: 500; display: block; white-space: nowrap; }
+.morning-weather-metrics strong span { font-size: 18px; }
+.morning-weather-metrics div > span { font-size: 18px; color: var(--brief-muted); }
+.morning-session { color: var(--brief-muted); font-size: 18px; margin: 0 0 10px; }
+.morning-market-row { font-size: 20px; margin: 0; padding: 13px 0; border-bottom: 1px solid var(--brief-line); }
+.morning-market-row:last-child { border-bottom: 0; }
 .morning-grid a { color: inherit; text-decoration: none; }
 .morning-grid a:hover { text-decoration: underline; }
-.morning-grid small, .morning-help, #morning-status { font-size: 18px; line-height: 1.4; color: var(--ink-mid); }
-.morning-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 22px; }
-.morning-actions label { display: flex; align-items: center; gap: 10px; font-size: 18px; min-height: 44px; }
-.morning-actions input { width: 24px; height: 24px; accent-color: var(--tide); }
-.morning-help { margin: 12px 0 0; }
+.morning-market-row a { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.morning-market-row strong { white-space: nowrap; font-size: 28px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.morning-up { color: #286244; } .morning-down { color: #a23d36; }
+#morning-events p { margin: 0 0 16px; }
+#morning-events a { display: grid; gap: 8px; font-size: 20px; line-height: 1.4; }
+#morning-events strong { font-size: 30px; font-weight: 500; }
+#morning-events .morning-economic-empty { font-size: 28px; line-height: 1.3; margin-top: 24px; max-width: 17ch; }
+.morning-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+#morning-dialog #morning-play { background: var(--brief-accent); color: var(--brief-bg); border-color: var(--brief-accent); }
+.morning-actions label { display: flex; align-items: center; gap: 10px; font-size: 18px; min-height: 48px; }
+.morning-actions input { width: 24px; height: 24px; accent-color: var(--brief-accent); }
+.morning-help { margin-left: auto; font-size: 18px; }
+.morning-help[open] { flex-basis: 100%; }
+.morning-help p { color: var(--brief-muted); line-height: 1.4; margin: 12px 0 0; }
+#morning-status { font-size: 18px; margin: 12px 0 0; color: var(--brief-muted); }
 #morning-status:empty { display: none; }
-@media (max-width: 850px) { .morning-grid { grid-template-columns: 1fr; } #morning-dialog { padding: 20px; } }
+#morning-dialog[data-style="focus"] { --brief-bg: #14242d; --brief-card: #1f3640; --brief-ink: #edf5f4; --brief-muted: #b3c7ca; --brief-line: #38515a; --brief-accent: #acd8d4; }
+[data-style="focus"] .morning-grid { grid-template-columns: 1fr 1.5fr; }
+[data-style="focus"] .morning-weather-card { grid-row: span 2; }
+[data-style="focus"] .morning-temperature strong { font-size: clamp(104px, 11vw, 148px); }
+[data-style="focus"] #morning-markets { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+[data-style="focus"] .morning-session { grid-column: 1 / -1; }
+[data-style="focus"] .morning-market-row { padding: 8px 0; }
+[data-style="focus"] .morning-market-row a { align-items: start; flex-direction: column; gap: 4px; }
+[data-style="focus"] .morning-market-card small { padding-top: 8px; }
+[data-style="focus"] #morning-events .morning-economic-empty { font-size: 24px; max-width: none; margin: 0; }
+[data-style="focus"] .morning-economy-card h3 { margin-bottom: 8px; }
+[data-style="focus"] .morning-economy-card small { padding-top: 8px; }
+[data-style="focus"] .morning-up { color: #a9dfb9; } [data-style="focus"] .morning-down { color: #ffb3ad; }
+@media (min-width: 851px) and (max-height: 740px) { #morning-dialog { padding: 18px; } .morning-heading h2 { font-size: 32px; } .morning-designs { margin: 12px 0; } .morning-grid section { padding: 16px; } .morning-actions { margin-top: 12px; } }
+@media (max-width: 1050px) and (min-width: 851px) { .morning-grid { grid-template-columns: 1fr 1fr; } .morning-economy-card { grid-column: 1 / -1; } [data-style="focus"] .morning-weather-card { grid-row: auto; } [data-style="focus"] .morning-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 850px) { .morning-grid, [data-style="focus"] .morning-grid { grid-template-columns: 1fr; } #morning-dialog { padding: 18px; } .morning-designs { flex-wrap: wrap; } .morning-designs > span { width: 100%; } .morning-help { margin-left: 0; } .morning-temperature strong { font-size: 112px; } }

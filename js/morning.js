@@ -43,13 +43,21 @@ export function initMorning(config, root) {
   const dialog = document.createElement('dialog');
   dialog.id = 'morning-dialog';
   dialog.setAttribute('aria-labelledby', 'morning-title');
-  dialog.innerHTML = `<div class="section-heading"><div><p class="section-label">Votre rendez-vous de 7 h</p><h2 id="morning-title">Bonjour, famille Caron.</h2></div><button id="morning-close" type="button">Fermer</button></div>
-    <p id="morning-date"></p><div class="morning-grid"><section><h3>Aujourd’hui à ${config.location.label}</h3><p id="morning-weather"></p><small>Open-Meteo</small></section><section><h3>Dernière séance boursière</h3><div id="morning-markets"></div><small>FNB repères · variation à la clôture · Yahoo Finance</small></section><section><h3>Économie du jour</h3><div id="morning-events"></div><small id="morning-economic-note"></small></section></div>
-    <div class="morning-actions"><button id="morning-play" type="button">Écouter le bulletin</button><button id="morning-stop" type="button">Arrêter</button><label><input id="morning-voice" type="checkbox"> Voix automatique à 7 h</label></div><p id="morning-status" role="status"></p><p class="morning-help">Gardez le panneau ouvert et la tablette éveillée. Ouverture au réveil avant 11 h si le rendez-vous a été manqué. La voix s’active sur chaque appareil et peut nécessiter un nouveau toucher après un redémarrage.</p>`;
+  dialog.innerHTML = `<div class="morning-heading"><div><p class="morning-eyebrow">MAISON / LE BULLETIN DE 7 H</p><h2 id="morning-title">Bonjour, famille Caron.</h2><p id="morning-date"></p></div><button id="morning-close" type="button">Fermer</button></div>
+    <div class="morning-designs" role="group" aria-label="Style du bulletin"><span>Votre vue</span><button type="button" data-morning-style="horizon">Horizon · clair</button><button type="button" data-morning-style="focus">Focus · sombre</button></div>
+    <div class="morning-grid"><section class="morning-weather-card"><h3>Aujourd’hui à <span id="morning-location"></span></h3><div id="morning-weather"></div><small>Prévisions du jour · Open-Meteo</small></section><section class="morning-market-card"><h3>Les marchés</h3><div id="morning-markets"></div><small>FNB repères · clôture · Yahoo Finance</small></section><section class="morning-economy-card"><h3>À surveiller aujourd’hui</h3><div id="morning-events"></div><small id="morning-economic-note"></small></section></div>
+    <div class="morning-actions"><button id="morning-play" type="button">Écouter en anglais</button><button id="morning-stop" type="button">Arrêter</button><label><input id="morning-voice" type="checkbox"> Voix à 7 h</label><details class="morning-help"><summary>Fonctionnement</summary><p>Gardez le panneau ouvert et la tablette éveillée. Ouverture au réveil avant 11 h si le rendez-vous a été manqué. La voix s’active sur chaque appareil et peut nécessiter un nouveau toucher après un redémarrage.</p></details></div><p id="morning-status" role="status"></p>`;
   root.append(dialog);
   const q = id => dialog.querySelector(`#morning-${id}`);
   const read = key => { try { return localStorage.getItem(`maison-panel:morning-${key}`); } catch { return null; } };
   const write = (key, value) => { try { localStorage.setItem(`maison-panel:morning-${key}`, value); } catch {} };
+  q('location').textContent = config.location.label;
+  const setStyle = style => {
+    dialog.dataset.style = style === 'focus' ? 'focus' : 'horizon';
+    for (const button of dialog.querySelectorAll('[data-morning-style]')) button.setAttribute('aria-pressed', String(button.dataset.morningStyle === dialog.dataset.style));
+  };
+  setStyle(read('style'));
+  for (const button of dialog.querySelectorAll('[data-morning-style]')) button.onclick = () => { setStyle(button.dataset.morningStyle); write('style', dialog.dataset.style); };
   let weather = loadCache(weatherCacheKey(config));
   let markets = loadCache('morning-markets')?.data;
   let speech = '', lastDay = read('day'), loading = false;
@@ -70,8 +78,8 @@ export function initMorning(config, root) {
     utterance.voice = voices.find(v => v.lang === 'en-CA') || voices.find(v => v.lang.startsWith('en')) || null;
     utterance.onstart = () => q('status').textContent = 'Lecture du bulletin…';
     utterance.onend = () => q('status').textContent = 'Bonne journée !';
-    utterance.onerror = e => { if (!['canceled','interrupted'].includes(e.error)) q('status').textContent = 'Lecture bloquée. Touchez « Écouter le bulletin » et vérifiez le volume de la tablette.'; };
-    q('status').textContent = 'Si la lecture ne démarre pas, touchez « Écouter le bulletin ».';
+    utterance.onerror = e => { if (!['canceled','interrupted'].includes(e.error)) q('status').textContent = 'Lecture bloquée. Touchez « Écouter en anglais » et vérifiez le volume de la tablette.'; };
+    q('status').textContent = 'Si la lecture ne démarre pas, touchez « Écouter en anglais ».';
     window.speechSynthesis.speak(utterance);
   }
   function render() {
@@ -79,6 +87,12 @@ export function initMorning(config, root) {
     q('date').textContent = now.toLocaleDateString('fr-CA', { timeZone: config.timezone, weekday: 'long', day: 'numeric', month: 'long' });
     const forecast = forecastBrief(weather, day);
     q('weather').textContent = forecast;
+    const daily = weather?.data?.daily, index = daily?.time?.indexOf(day) ?? -1;
+    if (index >= 0 && Date.now() - weather.fetchedAt <= 6 * 3600000 && Number.isFinite(daily.temperature_2m_max?.[index]) && Number.isFinite(daily.temperature_2m_min?.[index])) {
+      const metric = key => Number.isFinite(daily[key]?.[index]) ? Math.round(daily[key][index]) : '—';
+      q('weather').innerHTML = `<div class="morning-temperature"><div><span class="morning-metric-label">Maximum</span><strong>${metric('temperature_2m_max')}<sup>°</sup></strong></div><div class="morning-low"><span class="morning-metric-label">Minimum</span><b>${metric('temperature_2m_min')}°</b><span class="morning-metric-label">Celsius</span></div></div><p class="morning-condition"></p><div class="morning-weather-metrics"><div><strong>${metric('precipitation_probability_max')}<span> %</span></strong><span>Précipitations</span></div><div><strong>${metric('wind_speed_10m_max')}<span> km/h</span></strong><span>Vent maximal</span></div></div>`;
+      q('weather').querySelector('.morning-condition').textContent = weatherLabel(daily.weather_code?.[index], 'fr-CA') || 'Prévisions du jour';
+    }
     const marketText = [];
     q('markets').replaceChildren();
     const dates = new Set((markets?.today === day ? markets.rows || [] : []).filter(r => !r.unavailable).map(r => r.date));
@@ -91,10 +105,15 @@ export function initMorning(config, root) {
     for (const benchmark of config.markets.symbols) {
       const row = markets?.today === day ? markets.rows?.find(r => r.symbol === benchmark.sym) : null;
       const item = document.createElement('p');
+      item.className = 'morning-market-row';
       if (row && !row.unavailable && Number.isFinite(row.change)) {
         const change = `${row.change >= 0 ? '+' : ''}${row.change.toFixed(2).replace('.', ',')} %`;
         const link = document.createElement('a'); link.href = `https://finance.yahoo.com/quote/${benchmark.sym}/history/`;
-        link.textContent = `${benchmark.label} · ${benchmark.sym} : ${change}`;
+        const label = document.createElement('span'), value = document.createElement('strong');
+        label.textContent = benchmark.label; value.textContent = change;
+        value.className = row.change >= 0 ? 'morning-up' : 'morning-down';
+        link.append(label, value);
+        link.setAttribute('aria-label', `${benchmark.label}, FNB ${benchmark.sym}, ${change}`);
         item.append(link);
         if (!commonDate) item.append(document.createElement('br'), document.createTextNode(`Séance du ${row.date}`));
         const sessionDate = new Date(`${row.date}T12:00:00Z`).toLocaleDateString('en-CA', {timeZone:'UTC',month:'long',day:'numeric'});
@@ -103,10 +122,18 @@ export function initMorning(config, root) {
       q('markets').append(item);
     }
     const economy = economicBrief(day);
-    q('events').replaceChildren(); q('economic-note').textContent = economy.note;
+    q('events').replaceChildren(); q('economic-note').textContent = economy.events.length ? economy.note : 'Sélection Canada / États-Unis · non exhaustive';
+    if (!economy.events.length) {
+      const empty = document.createElement('p'); empty.className = 'morning-economic-empty';
+      empty.textContent = day > ECONOMIC_VALID_UNTIL ? 'Calendrier à actualiser' : 'Aucune annonce suivie aujourd’hui';
+      q('events').append(empty);
+    }
     for (const event of economy.events) {
       const p = document.createElement('p'), a = document.createElement('a');
-      a.href = event.source; a.textContent = `${event.time || 'Heure à confirmer'} · ${event.title}`;
+      a.href = event.source;
+      const time = document.createElement('strong'), title = document.createElement('span');
+      time.textContent = event.time || 'Heure à confirmer'; title.textContent = event.title;
+      a.append(time, title);
       p.append(a); q('events').append(p);
     }
     speech = `Good morning, Caron family. Here is your morning briefing. In ${config.location.label}, ${forecastBrief(weather, day, Date.now(), 'en-CA')} For the markets, our benchmark ETFs: ${marketText.join(' ')} Today's economic events. ${spokenEconomy(day)} Have a wonderful day!`;
