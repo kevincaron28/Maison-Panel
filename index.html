@@ -100,7 +100,15 @@
         <div class="spotify-body"></div>
         <div class="spotify-status" role="status"></div>
       </footer>
-      <dialog id="camera-dialog"><div class="section-heading"><h2>Caméras</h2><button type="button" id="camera-close">Fermer</button></div><section id="tile-cameras" hidden><div class="camera-feeds"></div></section></dialog>
+      <dialog id="camera-dialog" aria-labelledby="camera-title" aria-describedby="camera-description">
+        <div class="section-heading camera-heading">
+          <div><p class="section-label">Votre maison</p><h2 id="camera-title">Un regard à la maison</h2></div>
+          <button type="button" id="camera-close">Fermer</button>
+        </div>
+        <p id="camera-description">Images actualisées · accès privé · sans son</p>
+        <section id="tile-cameras" hidden><div class="camera-feeds"></div></section>
+        <p class="camera-help">Touchez l’image pour l’agrandir. Le PC et la caméra doivent rester allumés.</p>
+      </dialog>
     </div>
     <div id="offline-indicator" role="status">
       Hors ligne · dernières données disponibles

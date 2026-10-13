@@ -4,6 +4,7 @@
 // recovers independently; there's no persistent connection to "reconnect," so a feed that comes
 // back online just starts succeeding on its next poll tick.
 let overlay = null;
+let overlayTrigger = null;
 
 function ensureOverlay() {
   if (overlay) return overlay;
@@ -11,7 +12,7 @@ function ensureOverlay() {
   overlay.className = "camera-overlay";
   overlay.hidden = true;
   overlay.innerHTML = `
-    <button class="camera-overlay-close" aria-label="close">&times;</button>
+    <button type="button" class="camera-overlay-close" aria-label="Fermer l’agrandissement">Fermer</button>
     <div class="camera-overlay-name"></div>
     <img class="camera-overlay-img" alt="" />
   `;
@@ -30,6 +31,7 @@ function ensureOverlay() {
 
 function closeOverlay() {
   if (overlay) overlay.hidden = true;
+  overlayTrigger?.focus();
 }
 
 function openOverlay(feed, currentSrc) {
@@ -37,11 +39,14 @@ function openOverlay(feed, currentSrc) {
   const dialog = document.getElementById("camera-dialog");
   if (dialog?.open) dialog.appendChild(el);
   el.dataset.feedId = feed.id;
+  overlayTrigger = document.activeElement;
   el.querySelector(".camera-overlay-name").textContent = feed.name;
   // Seed from the thumbnail's already-loaded image immediately — otherwise the overlay shows a
   // broken-image icon until the next poll tick (up to refreshMs later) sets a src for the first time.
   if (currentSrc) el.querySelector(".camera-overlay-img").src = currentSrc;
   el.hidden = false;
+  el.querySelector(".camera-overlay-img").alt = `Vue de ${feed.name}`;
+  el.querySelector("button").focus();
 }
 
 function snapshotUrl(feed) {
@@ -54,22 +59,22 @@ function initFeed(config, root, feed) {
   card.className = "camera-feed";
   card.innerHTML = `
     <img class="camera-feed-img" alt="" />
-    <div class="camera-feed-label"></div>
-    <div class="camera-feed-status">connexion…</div>
+    <div class="camera-feed-caption"><span class="camera-feed-label"></span><span class="camera-feed-status">Connexion…</span></div>
   `;
   root.appendChild(card);
   card.querySelector(".camera-feed-label").textContent = feed.name;
   card.setAttribute("aria-label", `Agrandir ${feed.name}`);
 
   const img = card.querySelector(".camera-feed-img");
+  img.alt = `Vue de ${feed.name}`;
   const status = card.querySelector(".camera-feed-status");
 
-  card.addEventListener("click", () => openOverlay(feed, img.src));
+  card.addEventListener("click", () => { if(img.getAttribute("src") && !card.classList.contains("is-offline")) openOverlay(feed, img.src); });
 
   function setState(state) {
     card.classList.toggle("is-offline", state === "offline");
-    status.hidden = state !== "offline";
-    status.textContent = state === "offline" ? "hors ligne" : "";
+    status.hidden = false;
+    status.textContent = state === "offline" ? "Caméra indisponible" : `Image reçue à ${new Intl.DateTimeFormat(config.locale || "fr-CA", {hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:config.timezone || "America/Toronto"}).format(new Date())}`;
   }
 
   let timer, failures=0, pending=null, objectUrl=null;
@@ -117,7 +122,7 @@ function initFeed(config, root, feed) {
   img.addEventListener("load", () => {failures=0;setState("live");schedule();});
   img.addEventListener("error", () => {failures=Math.min(failures+1,5);setState("offline");schedule();});
 
-  const visibility=()=>{clearTimeout(timer);if(feed.private&&!visible())clearPrivate();else tick();};
+  const visibility=()=>{clearTimeout(timer);if(!visible()){if(overlay?.dataset.feedId===feed.id)closeOverlay();if(feed.private)clearPrivate();}else tick();};
   document.addEventListener("visibilitychange",visibility);
   document.addEventListener("maison-camera-visibility",visibility);
   if(feed.private) {
