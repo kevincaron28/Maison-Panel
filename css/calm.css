@@ -1,3 +1,4 @@
+@import url("./weather-scenes.css");
 :root {
   --ground: #101715;
   --ground-raised: #1c2721;
@@ -23,8 +24,8 @@
   --solunar: #805010;
   color-scheme: light;
 }
-/* Weather accents keep the day/night palette readable; no flashing or motion. */
-:root { --weather-glow: transparent; }
+/* Soft colour and a small illustrated scene keep the forecast readable. */
+:root { --weather-glow: transparent; --weather-scene: none; }
 :root[data-weather="clear"][data-daylight="true"] { --weather-glow: #c9dba12b; }
 :root[data-weather="clear"][data-daylight="false"] { --weather-glow: #9db5db20; }
 :root[data-weather="rain"] { --weather-glow: #559bcc25; }
@@ -40,10 +41,10 @@
   overflow: hidden;
   isolation: isolate;
 }
-.weather-summary::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.12; pointer-events: none; }
-:root[data-weather="rain"] .weather-summary::before { background: repeating-linear-gradient(115deg, transparent 0 32px, var(--tide) 33px 34px, transparent 35px 66px); }
-:root[data-weather="wind"] .weather-summary::before { background: repeating-linear-gradient(175deg, transparent 0 42px, var(--tide) 43px 44px, transparent 45px 78px); }
-:root[data-weather="snow"] .weather-summary::before { background-image: radial-gradient(circle, var(--tide) 1px, transparent 2px); background-size: 28px 28px; }
+.weather-summary::before { content: ""; position: absolute; right:12px; top:34px; width:38%; height:138px; z-index:-1; opacity:.8; pointer-events:none; background:var(--weather-scene) center / contain no-repeat; }
+:root[data-theme="night"] .weather-summary::before { opacity:.55; }
+.weather-summary .hero-sub,.weather-summary .today-alert { position:relative; }
+@media(max-width:450px) { .weather-summary::before { width:32%; right:4px; opacity:.55; } }
 #fishing-now { font-size: 16px; color: var(--solunar); border-left: 3px solid var(--solunar); padding-left: 10px; margin-top: 8px; }
 :root[data-fishing="optimal"] .home-nav a[href="fishing.html"] { border-color: var(--solunar); color: var(--solunar); }
 :root[data-fishing="optimal"] .weather-summary { box-shadow: inset 0 -2px var(--solunar); }
