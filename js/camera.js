@@ -100,7 +100,7 @@ function initFeed(config, root, feed) {
 
   let timer, failures=0, pending=null, objectUrl=null;
   const visible=()=>!document.hidden && !root.closest("[hidden]") && (!root.closest("dialog") || root.closest("dialog").open);
-  function schedule(){clearTimeout(timer);timer=setTimeout(tick,Math.min(60000,(feed.refreshMs||config.refresh.camera)*2**failures));}
+  function schedule(){clearTimeout(timer);timer=setTimeout(tick,Math.min(60000,failures ? Math.max(1500,feed.refreshMs||config.refresh.camera)*2**failures : (feed.refreshMs||config.refresh.camera)));}
   function clearPrivate() {
     pending?.abort(); pending=null;
     if (objectUrl) URL.revokeObjectURL(objectUrl);

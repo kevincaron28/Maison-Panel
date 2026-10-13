@@ -41,7 +41,7 @@ export const CONFIG = {
   //   enabled      set false to keep a feed configured but hidden, without deleting it
   // Example:
   //   { id: "front-door", name: "Front door", snapshotUrl: "http://192.168.1.60/snapshot.jpg", enabled: true }
-  camera: { feeds: [{ id: "home", name: "Maison · HM203", snapshotUrl: "/api/camera/snapshot", controlUrl: "/api/camera/control", refreshMs: 5000, enabled: true, private: true }] },
+  camera: { feeds: [{ id: "home", name: "Maison · HM203", snapshotUrl: "/api/camera/snapshot", controlUrl: "/api/camera/control", refreshMs: 150, enabled: true, private: true }] },
 
   spotify: {
     // From developer.spotify.com/dashboard — not secret (PKCE doesn't use a client secret), safe

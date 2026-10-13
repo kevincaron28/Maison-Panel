@@ -1,5 +1,9 @@
 # HM203 camera integration
 
+## Faster viewing update
+
+The bridge keeps one RTSP decoder open while viewing, decoding four JPEG frames per second. Each request waits for a newly decoded frame. The panel requests another frame 150 ms after the previous image loads; effective rate depends on network latency. This is a rapid JPEG feed, not full-motion video with audio. A LAN benchmark produced the first frame in 1.4 seconds, then new frames in 227–248 ms. Frames remain memory-only. The decoder stops after ten seconds without requests and on relay disconnect. Hidden/closed views stop polling; failures back off from three seconds. Copy `camera-stream.mjs` along with the other bridge modules when updating. This supersedes the per-image FFmpeg startup and five-second polling described below.
+
 The Caméras button opens refreshing still images, approximately every five seconds plus capture time. This is not full-motion video or audio. The owner signs in through Settings using the same private session as the calendar. Anonymous viewers cannot obtain images; the PC publisher credential cannot read them.
 
 The HM203 works over Ethernet and exposes ONVIF and RTSP. Its advertised JPEG endpoint returns an empty response. A Windows bridge uses FFmpeg to capture one fresh JPEG when a signed-in viewer requests it. The PC maintains an outbound authenticated WSS connection to a Cloudflare Durable Object. No router ports are opened. Images pass through Cloudflare in memory for that request; they are not stored in KV, SQLite, browser storage, or the service-worker cache. The socket hibernates while idle. Closing the view stops capture requests.
