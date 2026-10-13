@@ -9,11 +9,13 @@
   "scripts": {
     "test": "node --test",
     "serve": "node scripts/serve.mjs",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "check:calendar": "node scripts/check-economic-calendar.mjs"
   },
-  "description": "Wall-mounted tablet dashboard: clock, weather, solunar, calendar, and markets. Static site, no build step.",
+  "description": "Wall tablet dashboard with private calendar and reminder synchronization on Cloudflare Workers.",
   "license": "UNLICENSED",
   "devDependencies": {
-    "jsdom": "^30.1.2"
+    "jsdom": "^30.1.2",
+    "wrangler": "^4.150.0"
   }
 }

@@ -9,15 +9,9 @@ Repo-specific dev notes: [`CLAUDE.md`](CLAUDE.md). Getting this onto an actual t
 
 ## Stack
 
-Plain HTML + CSS + vanilla JS modules. No framework, no transpilation, no bundler, no server. Deployed
-as a static site (Cloudflare Workers with static assets); the tablet's browser calls every API
-directly (Open-Meteo, Google Calendar, Spotify), with an isolated TradingView market widget. Solunar/fishing timing is local astronomy math via a
-vendored copy of [SunCalc](https://github.com/mourner/suncalc) — no network call for that tile.
+Plain HTML, CSS and vanilla JavaScript, with a small Cloudflare Worker for private Google Calendar access and reminder synchronization. No home server is required. Weather and Spotify still connect directly from the browser; Markets uses an isolated TradingView iframe. Fishing calculations run locally using SunCalc.
 
-No server, no second machine, no LAN process of any kind — every tile is client-side-only against
-a public API or local math. Music control talks to Spotify Connect (the Spotify Web API), auth'd
-with OAuth Authorization Code + PKCE, which — unlike the Google Home speaker bridge this project
-used to have — is a cloud API call the browser can make directly, no local process required.
+Google credentials live in Cloudflare secrets. Private tokens and synced reminders are encrypted in KV. The Worker accepts only the configured owner Google account; calendar access is read-only. See [private integration operations](docs/private-integration.md).
 
 ## Running locally
 
@@ -25,7 +19,7 @@ used to have — is a cloud API call the browser can make directly, no local pro
 npm run serve
 ```
 
-(Any static file server works. Do not open `index.html` via `file://` — that origin breaks CORS.)
+The static preview covers UI and public integrations. Use `npx wrangler dev` for the packaged Worker and offline shell. Production Google sign-in requires the registered HTTPS callback; local preview does not use production credentials.
 
 ## YESTEL T13 display target
 
@@ -41,21 +35,17 @@ Android navigation controls hidden before changing the T13 breakpoint.
 ## Configuration
 
 The default interface follows **Sherrington sunrise/sunset**: light by day, dark at night,
-calculated locally without requiring weather connectivity. The theme button cycles Auto / Light /
+calculated locally without requiring weather connectivity. The theme button in Settings cycles Auto / Light /
 Dark and remembers that choice. Weather adds subtle static rain, wind, snow, cloud or clear-sky
 accents; cached weather uses a neutral appearance. Active fishing periods show an amber indicator,
 with a stronger accent for major periods rated at least 3/4 (solunar indication, not a catch guarantee).
 
-**Bonjour** restores normal brightness and automatic appearance. **Absent** dims the panel to 55%
-and requests a Spotify pause. **Bonne nuit** requests a pause and dims it to 35%; the next
-sunrise restores normal brightness. Neither preset automatically starts music or controls house
-devices. Status text reports unavailable Spotify sessions. Modes persist in this browser, and
-reloading never repeats a music command. These are visual brightness adjustments, not Android
-hardware brightness controls. `config.js` → `ui` controls the compact hourly forecast.
+The panel follows sunrise and sunset without Away/Sleep presets or automatic music commands.
+`config.js` → `ui` controls the compact hourly forecast.
 See [layout research](docs/layout-research.md) for the design
-comparison, rationale and remaining private-agenda limitation.
+comparison and original rationale. The native private agenda now replaces the embedded default.
 
-Everything you'd tune — location, units, refresh intervals, API keys, market symbols, camera feeds —
+Public preferences — location, units, refresh intervals, market symbols and camera feeds —
 lives in [`config.js`](config.js). That's the only file meant to be hand-edited day to day.
 
 ## Status
@@ -65,13 +55,11 @@ official economic-release reminders, trading hours and Canadian-market resources
 **[Fishing](fishing.html)** includes today/tomorrow solunar windows, seven-day weather, a daily
 device-local trip checklist and official Québec zone/permit links.
 
-Home alerts combine forecast-based weather indicators, selected economic events, and reminders
-entered in **Settings → Rappels importants**. Alerts are displayed while the page is open;
-they are not phone notifications or official emergency warnings. Personal reminders stay in the
-current browser, do not upload to the public site, and are not read from the Google Calendar iframe.
-Economic reminder dates are a documented selection checked October 12, 2026, through December 31,
-2026; update `js/economic-events.js` when schedules change. TradingView's live economic widget is
-separate and does not automatically supply the alert list. Expired schedule coverage is flagged.
+Home shows personal reminders alongside the agenda; weather warnings stay with weather and economic releases stay on Markets. Reminders can be edited, repeated daily/weekly/monthly, archived and restored in Settings. Sign into the same approved Google account on a phone and the panel to sync reminders. Offline edits remain local until the next successful sync. These are on-panel reminders, not phone push notifications.
+
+The curated economic schedule currently covers dates through December 31, 2026. `npm run check:calendar` validates it and fails within 30 days of expiry. See [schedule maintenance](docs/economic-calendar-maintenance.md). Upcoming releases refresh every minute and on returning to the page.
+
+The versioned offline shell keeps owned pages/scripts/fonts available after one online installation. Google and Spotify responses are never cached by the service worker. Cached weather is marked as stale. Updates appear as an explicit “Mise à jour prête” action; Settings shows the installed release and connection diagnostics.
 
 The existing production dashboard is hosted at
 [`maison-panel.kcaron.workers.dev`](https://maison-panel.kcaron.workers.dev):
@@ -81,17 +69,16 @@ The existing production dashboard is hosted at
   market status. It runs in a separate-origin iframe, away from Spotify/device storage.
   It requires Internet access and cannot use Maison's local last-good quote cache.
   The optional FMP provider remains available via `config.js`; its subscription must cover all symbols.
-  The previously exposed FMP key still needs revocation by its owner.
+  The historical exposed FMP key was checked October 13 and still returned a valid quote; the owner must revoke it. It is not used by the default Markets view.
 - **Fishing** is accessible directly from the home navigation and shows complete major/minor
   windows, peaks, moon phase/rating, sunrise/sunset and today/tomorrow schedules. The solunar
   rating is an indication from traditional solunar theory, not a catch forecast.
-- **Calendar** is a private Google Calendar iframe embed (Path B in the brief) pointed at
-  `config.js` → `calendar.calendarId` — nothing needed to be made public, it just needs the
-  tablet's browser signed into that Google account.
+- **Calendar** shows up to five upcoming private events in the panel's theme. Connect once in Settings; the full Google calendar and an embedded fallback remain available. Google's embedded-browser policies may require Chrome instead of Fully for account sign-in; verify on the actual tablet.
 
-Camera (`js/camera.js`) is fully built — snapshot polling, live/offline state, tap-to-enlarge —
-and just needs feeds added to `config.js` → `camera.feeds` once hardware is picked; see
-`docs/project-brief.md` §9 and §11.2.
+Camera (`js/camera.js`) connects the HM203 through an owner-authenticated image relay.
+The PC bridge converts RTSP into refreshing images while Caméras is open; the PC and
+Ethernet-connected camera must stay on. Windows automatic startup is not installed
+(approval review blocked it). See `docs/camera-integration.md` for operation and manual startup.
 
 **Spotify** (`js/spotify.js`) controls playback on whichever device is active in Kevin's Spotify
 account — a phone, a computer, or a Spotify Connect–enabled speaker — via the Spotify Web API.
@@ -109,7 +96,7 @@ Cloudflare deploys `main` using `npx wrangler deploy`. Wrangler first runs
 does not compile JavaScript; it prevents docs, tests, design previews and dependencies from being
 published as website files.
 
-Before release: `npm ci`, `npm test`, `npm run package`. A local design comparison is available at
+Before release: `npm ci`, `npm test`, `npm run check:calendar`, `npm run package`. A local design comparison is available at
 `http://127.0.0.1:8080/design/` while the preview server runs. Design previews use sample data.
 
 See [the audit and upgrade plan](docs/system-audit.md) for confirmed findings, remaining account

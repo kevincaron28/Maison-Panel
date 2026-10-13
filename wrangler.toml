@@ -1,9 +1,31 @@
 name = "maison-panel"
 compatibility_date = "2026-09-08"
 workers_dev = true
+preview_urls = false
+main = "worker/index.js"
+
+[[durable_objects.bindings]]
+name = "CAMERA_RELAY"
+class_name = "CameraRelay"
+
+[[migrations]]
+tag = "camera-v1"
+new_sqlite_classes = ["CameraRelay"]
+
+[vars]
+APP_ORIGIN = "https://maison-panel.kcaron.workers.dev"
+ALLOWED_EMAIL = "kevincaron28@gmail.com"
+GOOGLE_CALENDAR_ID = "primary"
+
+[[kv_namespaces]]
+binding = "PRIVATE_DATA"
+id = "da443c895cff4103800be1dfb2f2d6dc"
 
 [build]
 command = "node scripts/package.mjs"
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/", "/api/*"]
+html_handling = "none"

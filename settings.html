@@ -4,79 +4,164 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Réglages · Maison</title>
-    <style>
-      body {
-        margin: 40px auto;
-        padding: 24px;
-        max-width: 640px;
-        background: #121918;
-        color: #eef3ef;
-        font: 20px/1.6 system-ui;
-      }
-      a {
-        color: #b3d6c4;
-      }
-      input,
-      button {
-        box-sizing: border-box;
-        width: 100%;
-        padding: 16px;
-        margin: 10px 0;
-        font: inherit;
-        border-radius: 10px;
-        border: 1px solid #788c84;
-      }
-      button {
-        cursor: pointer;
-      }
-      small {
-        display: block;
-        color: #bdc9c1;
-      }
-      code {
-        overflow-wrap: anywhere;
-      }
-    </style>
+    <link rel="stylesheet" href="css/calm.css" />
+    <link rel="stylesheet" href="css/details.css" />
   </head>
-  <body>
-    <a href="./">← Maison</a>
-    <h1>Réglages du panneau</h1>
-    <section id="reminders"><h2>Rappels importants</h2><p>Privés, enregistrés uniquement dans ce navigateur. Ajoutez-les sur la tablette pour y voir les alertes. Ils ne sont pas synchronisés avec Google Calendar.</p><form id="reminder-form"><label for="reminder-title">Événement</label><input id="reminder-title" maxlength="120" required placeholder="Ex. rendez-vous, collecte, paiement"><label for="reminder-time">Date et heure · Sherrington / Toronto</label><input id="reminder-time" type="datetime-local" required><button type="submit">Ajouter le rappel</button></form><p id="reminder-status" role="status"></p><ul id="reminder-list"></ul><p>Affichage sur l’accueil dès 24 h avant et jusqu’à une heure après. Google Calendar reste visible sur l’accueil; ses alertes automatiques nécessitent une connexion supplémentaire.</p></section><h2>Marchés</h2>
-    <p>Les quatre indices sont suivis via leurs ETF (SPY, QQQ, DIA, IWM) dans TradingView. Aucune clé n’est nécessaire.</p>
-    <details><summary>Ancienne connexion FMP (option avancée)</summary>
-    <p>Utilisée seulement si config.js sélectionne le fournisseur FMP. Votre abonnement doit couvrir les quatre symboles.</p>
-    <form id="market-settings">
-      <label for="market-key">Clé API FMP</label
-      ><input
-        id="market-key"
-        type="password"
-        autocomplete="off"
-        spellcheck="false"
-      /><small
-        >Enregistrée uniquement dans ce navigateur et envoyée à FMP pour les
-        cotations. Elle reste accessible aux scripts du panneau. N’utilisez pas
-        une clé dotée de permissions sensibles.</small
-      ><button type="submit">Enregistrer</button
-      ><button type="button" id="remove-key">Déconnecter les marchés</button>
-    </form>
-    <p id="settings-status" role="status"></p>
-    </details>
-    <section id="spotify">
-      <h2>Connexion Spotify</h2>
-      <p>Si Spotify affiche « redirect URI » ou « no matching configuration », ajoutez exactement cette adresse dans Spotify Developer Dashboard → votre application → Settings → Redirect URIs :</p>
-      <p><code id="spotify-redirect"></code></p>
-      <p>Gardez le slash final. Enregistrez, puis revenez ici dans Fully Kiosk et touchez « Connecter Spotify ». La connexion reste propre à ce navigateur : se connecter sur un ordinateur ne connecte pas la tablette.</p>
-      <p><a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Ouvrir Spotify Developer Dashboard</a></p>
-      <p>Fully doit autoriser la navigation vers accounts.spotify.com et conserver les données du site. Ne videz pas le stockage après connexion.</p>
-      <p id="spotify-storage-status"></p>
-    </section>
-    <h2>État de la tablette</h2>
-    <p id="device-status"></p>
-    <p>Adresse actuelle : <code id="current-url"></code></p>
-    <p>
-      Si le panneau ne démarre pas, vérifiez cette adresse dans Fully Kiosk et
-      mettez à jour Android System WebView.
-    </p>
+  <body class="detail-page" data-page="settings">
+    <div id="panel">
+      <nav class="home-nav" aria-label="Navigation principale">
+        <a class="wordmark" href="./">maison.</a>
+        <div>
+          <a href="./">Accueil</a><a href="fishing.html">Pêche</a
+          ><a href="markets.html">Marchés</a
+          ><a href="settings.html" aria-current="page">Réglages</a>
+        </div>
+      </nav>
+      <header class="page-heading">
+        <h1>Réglages</h1>
+        <p>Votre quotidien, vos préférences.</p>
+      </header>
+      <main>
+        <section class="detail-card">
+          <h2>Affichage</h2>
+          <div class="settings-row">
+            <span>Clair au lever du soleil, sombre au coucher.</span
+            ><button id="theme-toggle" type="button">Thème auto</button>
+          </div>
+          <label for="idle-minutes">Retour à l’accueil après inactivité</label
+          ><select id="idle-minutes">
+            <option value="0">Jamais</option>
+            <option value="2">2 minutes</option>
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="30">30 minutes</option>
+          </select>
+          <p class="muted">
+            Sur Pêche et Marchés uniquement. Les formulaires et commandes en
+            cours restent ouverts.
+          </p>
+        </section>
+        <section class="detail-card" id="calendar-settings">
+          <h2>Agenda et synchronisation</h2>
+          <p>
+            Ajoutez vos événements depuis Google Calendar sur votre téléphone :
+            ils apparaissent sur le panneau.
+          </p>
+          <p id="calendar-connection" role="status">Vérification…</p>
+          <div class="settings-actions">
+            <a class="action-link" href="/api/auth/start"
+              >Connecter Google Calendar</a
+            ><a
+              href="https://calendar.google.com/calendar/u/0/r/eventedit"
+              target="_blank"
+              rel="noopener"
+              >Ajouter dans Google Calendar ↗</a
+            ><button type="button" id="calendar-disconnect" hidden>
+              Déconnecter ce navigateur
+            </button>
+          </div>
+          <p class="muted">
+            Lecture seule des événements. Les rappels Maison se synchronisent
+            entre les appareils connectés au même compte.
+          </p>
+        </section>
+        <section class="detail-card" id="reminders">
+          <h2>Rappels Maison</h2>
+          <p id="reminder-sync-status">
+            Sans connexion Google, les rappels restent dans ce navigateur.
+          </p>
+          <form id="reminder-form">
+            <input id="reminder-id" type="hidden" /><label for="reminder-title"
+              >Événement</label
+            ><input
+              id="reminder-title"
+              maxlength="120"
+              required
+              placeholder="Ex. collecte, rendez-vous"
+            /><label for="reminder-time">Date et heure · Toronto</label
+            ><input id="reminder-time" type="datetime-local" required /><label
+              for="reminder-repeat"
+              >Répétition</label
+            ><select id="reminder-repeat">
+              <option value="none">Une fois</option>
+              <option value="daily">Chaque jour</option>
+              <option value="weekly">Chaque semaine</option>
+              <option value="monthly">Chaque mois</option>
+            </select>
+            <div class="settings-actions">
+              <button type="submit" id="reminder-save">Ajouter</button
+              ><button type="button" id="reminder-cancel" hidden>
+                Annuler
+              </button>
+            </div>
+          </form>
+          <p id="reminder-status" role="status"></p>
+          <ul id="reminder-list" class="reminder-list"></ul>
+          <button type="button" id="archive-expired">
+            Archiver les rappels terminés
+          </button>
+          <details>
+            <summary>Rappels archivés</summary>
+            <ul id="reminder-archive" class="reminder-list"></ul>
+          </details>
+        </section>
+        <details class="detail-card">
+          <summary>État du panneau et connexions</summary>
+          <dl id="diagnostics"></dl>
+          <p id="device-status"></p>
+          <p>Adresse : <code id="current-url"></code></p>
+          <button id="check-connections" type="button">
+            Vérifier maintenant
+          </button>
+          <section id="spotify">
+            <h2>Spotify</h2>
+            <p id="spotify-storage-status"></p>
+            <p>
+              Connectez Spotify depuis l’accueil. La connexion est propre à
+              chaque navigateur.
+            </p>
+            <details>
+              <summary>Aide avancée Spotify</summary>
+              <p>
+                Adresse de retour à inscrire dans Spotify Developer Dashboard :
+              </p>
+              <code id="spotify-redirect"></code>
+              <p>
+                Fully doit conserver les données du site et autoriser
+                accounts.spotify.com.
+              </p>
+              <a
+                href="https://developer.spotify.com/dashboard"
+                target="_blank"
+                rel="noopener"
+                >Configuration Spotify ↗</a
+              >
+            </details>
+          </section>
+          <details>
+            <summary>Ancienne connexion FMP</summary>
+            <p>
+              TradingView n’a pas besoin de clé. FMP est utilisé uniquement si
+              sélectionné dans la configuration.
+            </p>
+            <form id="market-settings">
+              <label for="market-key">Clé FMP</label
+              ><input
+                id="market-key"
+                type="password"
+                autocomplete="off"
+              /><button type="submit">Enregistrer</button
+              ><button type="button" id="remove-key">Retirer la clé FMP</button>
+            </form>
+            <p id="settings-status" role="status"></p>
+          </details>
+        </details>
+      </main>
+      <footer class="detail-footer">
+        <a href="./">← Retour à l’accueil</a
+        ><a href="privacy.html">Confidentialité</a>
+      </footer>
+    </div>
     <script type="module" src="js/settings.js"></script>
   </body>
 </html>

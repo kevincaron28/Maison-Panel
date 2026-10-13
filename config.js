@@ -29,21 +29,19 @@ export const CONFIG = {
   },
 
   calendar: {
-    mode: "embed", // "embed" = private iframe, your own Google login on the tablet (current choice)
     calendarId: "kevincaron28@gmail.com", // the calendar to show
-    googleApiKey: "", // only used if you ever switch mode to "api" (see docs/project-brief.md §5.3)
   },
 
-  // Add a camera by adding a feed here — no code changes needed. Blocked on brand/model, brief
-  // §11.2, so this stays empty for now. Each feed:
+  // Camera images use the owner-authenticated relay. LAN addresses and the bridge secret
+  // stay in the PC's private configuration, outside this public repository. Each feed:
   //   id           stable short id, used as a DOM key — keep it simple (e.g. "front-door")
   //   name         shown under the thumbnail
-  //   snapshotUrl  LAN http:// URL returning a still image (most IP cameras have one) — required
+  //   snapshotUrl  same-origin private endpoint or HTTPS image URL — required
   //   refreshMs    how often to re-fetch the snapshot (default: refresh.camera below)
   //   enabled      set false to keep a feed configured but hidden, without deleting it
   // Example:
   //   { id: "front-door", name: "Front door", snapshotUrl: "http://192.168.1.60/snapshot.jpg", enabled: true }
-  camera: { feeds: [] },
+  camera: { feeds: [{ id: "home", name: "Maison · HM203", snapshotUrl: "/api/camera/snapshot", refreshMs: 5000, enabled: true, private: true }] },
 
   spotify: {
     // From developer.spotify.com/dashboard — not secret (PKCE doesn't use a client secret), safe
@@ -54,6 +52,5 @@ export const CONFIG = {
     refresh: 10 * 1000,
   },
 
-  night: { start: 21, end: 6, dimTo: 0.35 },
   dailyReloadHour: 3,
 };

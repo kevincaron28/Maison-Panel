@@ -7,11 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The user is now considering an optional local server for synchronized music and Fire TV control,
   with easy migration from a Windows pilot to an old Dell. See `docs/local-server-plan.md`.
   Older absolute no-server constraints below describe the original deployment, not this new proposal.
-  The shipped runtime remains static; no local service has been installed or integrated yet.
+  No local service has been installed. The October 13 upgrade adds a Cloudflare Worker for private Calendar and reminder sync.
 
 - Production URL: https://maison-panel.kcaron.workers.dev/ (verified in Cloudflare).
 - GitHub reports this repository as public. Never commit API keys, camera credentials or device tokens.
-- Runtime remains static vanilla JS. Wrangler packages an allowlist into `dist/` before deploying;
+- Frontend remains vanilla JS. `worker/index.js` handles authenticated `/api/*` routes with encrypted KV. Google secrets must never reach public assets. Wrangler packages an allowlist into `dist/` before deploying;
   there is no transpilation or bundler. Do not deploy the repository root.
 - Node 24+ development checks: `npm ci`, `npm test`, `npm run package`; preview with `npm run serve`.
 - Optional camera feeds require HTTPS from the hosted HTTPS panel; no camera appears when feeds are empty.
@@ -30,23 +30,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 household calendar, and a market-indices strip, in that priority order. Weather and fishing are the
 primary use; markets are a secondary strip.
 
-**The constraint that drives every decision:** no home server, no Docker, no backend. It is a static
-site — plain HTML/CSS/vanilla JS modules, no framework, no build step, no bundler — deployed to
-Cloudflare Pages. The tablet's browser calls every external API directly; there is no middleware layer.
-See `docs/project-brief.md` for the full brief this build follows (architecture rationale, tile specs,
-resilience requirements, design direction, and the phased build order).
+The current architecture uses static frontend assets plus a Cloudflare Worker for private Calendar and reminder sync. There is no home server or Docker requirement. This supersedes the original static-only brief. Spotify remains browser PKCE and controls Spotify Connect devices.
 
-**No exceptions.** Every tile is client-side-only against a public API or local math — there is no
-`/server`, no LAN process, no second machine anywhere in this project. (Google Home speaker control
-was built and then removed, September 2026, per Kevin's decision to keep this to just the deployed
-URL — see git history if that code is ever wanted again.) Media control is now `js/spotify.js`:
-Spotify Connect via the Spotify Web API, auth'd with OAuth Authorization Code + PKCE — unlike
-Chromecast's mDNS device discovery, that's a cloud API call the browser makes directly, no server
-needed. It controls whichever device is already active in the Spotify account (phone, computer, or
-a Spotify Connect–enabled speaker) rather than playing through the tablet itself.
-
-There are no lint, build, or test commands. Changes are validated by opening `index.html` (a local
-static server is enough — see below) and, ultimately, by the deployed Pages URL on the actual tablet.
+Use Node 24+, `npm test`, `npm run check:calendar`, and `npm run package` before deploying. Check the actual tablet separately; desktop browser testing cannot certify Fully, speaker output or an overnight run.
 
 ## Running locally
 
@@ -64,18 +50,14 @@ and service workers, so always serve it over `http(s)`.
 ## Architecture
 
 ```
-[Android tablet, Fully Kiosk Browser]
-        │ loads https://<name>.workers.dev
-        ▼
-[Cloudflare Workers, static assets] ← static HTML/CSS/JS only, deployed via wrangler.toml from git
-        │ the browser fetches directly:
-        ├──► api.open-meteo.com          (weather, no key, CORS: *)
-        ├──► financialmodelingprep.com   (markets, key in query string, CORS enabled)
-        ├──► googleapis.com/calendar     (calendar, browser API key)
-        ├──► accounts.spotify.com        (Spotify OAuth, PKCE — no client secret)
-        ├──► api.spotify.com             (Spotify playback control, bearer token)
-        └──► http://<camera-lan-ip>      (camera snapshots, LAN only, phase 5)
+Android tablet / phone
+  -> Cloudflare static assets + versioned offline shell
+  -> /api/* Worker -> Google Calendar (read-only), encrypted private KV
+  -> Open-Meteo (weather), Spotify (PKCE), isolated TradingView widget
 ```
+
+Operations, privacy and account recovery: `docs/private-integration.md`.
+
 
 Fishing/solunar times are pure client-side astronomy math (vendored SunCalc) — zero network calls.
 

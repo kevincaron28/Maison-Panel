@@ -44,10 +44,6 @@
 :root[data-weather="rain"] .weather-summary::before { background: repeating-linear-gradient(115deg, transparent 0 32px, var(--tide) 33px 34px, transparent 35px 66px); }
 :root[data-weather="wind"] .weather-summary::before { background: repeating-linear-gradient(175deg, transparent 0 42px, var(--tide) 43px 44px, transparent 45px 78px); }
 :root[data-weather="snow"] .weather-summary::before { background-image: radial-gradient(circle, var(--tide) 1px, transparent 2px); background-size: 28px 28px; }
-.home-modes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-.home-modes button { padding: 8px 12px; font-size: 18px; }
-.home-modes [aria-pressed="true"] { background: var(--ground-raised); border-color: var(--tide); }
-#home-mode-status { color: var(--ink-mid); font-size: 14px; line-height: 1.35; margin-top: 6px; max-width: 460px; }
 #fishing-now { font-size: 16px; color: var(--solunar); border-left: 3px solid var(--solunar); padding-left: 10px; margin-top: 8px; }
 :root[data-fishing="optimal"] .home-nav a[href="fishing.html"] { border-color: var(--solunar); color: var(--solunar); }
 :root[data-fishing="optimal"] .weather-summary { box-shadow: inset 0 -2px var(--solunar); }
@@ -760,9 +756,6 @@ button:disabled,input:disabled { opacity: .45; cursor: default; }
 #today-strip.is-stale {
   opacity: 0.7;
 }
-body.is-night {
-  filter: brightness(var(--night-opacity, 0.5));
-}
 @media (max-height: 740px) and (min-width: 851px) {
   #panel {
     padding: 16px 28px;
@@ -877,4 +870,48 @@ body.is-night {
 
 @media (min-width: 851px) {
   #tile-main { grid-template-rows: auto minmax(0, 1fr); }
+}
+
+/* October usability pass: quiet home, readable agenda, roomy detail dialogs. */
+.home-nav a:not(.wordmark) { display:inline-flex; align-items:center; min-height:48px; padding:10px 14px; text-decoration:none; font-size:18px; border-radius:24px; }
+.home-nav a[aria-current="page"] { background:var(--ground-raised); }
+.home-nav > div { flex-wrap:wrap; }
+.weather-forecast { overflow:visible; }
+#today-strip { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:14px; gap:12px; }
+#today-strip [data-metric="uv"], .today-daylight { display:none; }
+.metric-label,.today-metric small,.hour > div:last-child { font-size:16px; }
+.today-metric strong { font-size:22px; }
+.weather-meta { display:flex; gap:16px; align-items:start; flex-wrap:wrap; color:var(--ink-mid); font-size:14px; margin-top:6px; }
+.weather-info { position:relative; }
+.weather-info summary { cursor:pointer; min-height:24px; }
+.weather-info[open] p { position:absolute; z-index:5; right:0; width:min(360px,80vw); padding:16px; background:var(--ground-raised); border:1px solid var(--line); border-radius:12px; line-height:1.5; }
+#tile-calendar { gap:8px; }
+.daily-alerts { max-height:82px; font-size:18px; }
+.native-agenda { background:transparent; border-radius:0; overflow:auto; }
+.agenda-events { list-style:none; margin:0; padding:0; }
+.agenda-events li { display:grid; gap:5px; padding:12px 0; border-bottom:1px solid var(--line); }
+.agenda-events span { font-size:16px; color:var(--ink-mid); }
+.agenda-events strong { font-size:22px; font-weight:400; line-height:1.3; }
+.agenda-status { color:var(--ink-mid); font-size:16px; padding:12px 0; line-height:1.5; }
+.agenda-actions { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; font-size:16px; }
+.agenda-actions a { padding:10px 0; }
+.agenda-actions button { font-size:16px; }
+.forecast-dialog,.calendar-dialog,#camera-dialog { width:min(1000px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); padding:24px; border:1px solid var(--line); border-radius:20px; background:var(--ground); color:var(--ink-high); }
+.forecast-dialog::backdrop,.calendar-dialog::backdrop,#camera-dialog::backdrop { background:#000a; }
+.forecast-dialog #forecast-days { max-height:none; }
+.forecast-dialog .day-summary { min-height:66px; }
+.calendar-dialog iframe { width:100%; height:70vh; border:0; margin-top:16px; }
+.update-ready { position:fixed; bottom:16px; right:16px; z-index:90; background:var(--ground-raised); }
+@media(min-width:851px) {
+  #tile-main { grid-template-rows:auto minmax(0,1fr); row-gap:14px; }
+  #panel { gap:14px; }
+  .hourly-strip { padding:10px 0; margin-top:6px; }
+  .hour { gap:4px; }
+  #tile-spotify { min-height:78px; }
+}
+@media(max-width:850px) {
+  .home-nav { height:auto; flex-wrap:wrap; }
+  #panel { height:auto; min-height:100%; grid-template-rows:auto auto auto; }
+  .weather-forecast { overflow:visible; }
+  .native-agenda { min-height:260px; }
 }

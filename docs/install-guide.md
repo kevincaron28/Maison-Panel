@@ -118,20 +118,13 @@ weather every 15 minutes, and the moon/fishing info every 5 minutes, entirely on
 Weather and solunar work with zero setup. Calendar and markets are both configured now too — here's
 what each still needs from the tablet side to actually show anything.
 
-**Calendar** — built as a private embed, so nothing needs to be made public. `config.js` →
-`calendar.calendarId` is set. The tablet needs a Google browser session with access to that calendar.
-Fully uses WebView and does not necessarily share Chrome's cookies. Verify this on the tablet;
-Google's embedded-browser sign-in and third-party-cookie policies may affect it. Do not clear
-cookies/web storage on every reload.
+**Calendar** — open Settings and choose **Connecter Google** using the approved owner account. The native agenda remains private; do not make the calendar public. Sign in on both the phone and tablet to synchronize reminders. Google can restrict sign-in in embedded WebViews; use a supported browser on the tablet if Fully is blocked. A Google browser session alone does not establish a Maison Panel session.
 
-The iframe's internal styling belongs to Google. A custom private agenda requires authenticated
-calendar access; the old brief's public-calendar API option is not implemented and should not be
-used as a privacy workaround.
+**Markets** — four ETF benchmarks now use TradingView without a key or paid FMP plan. The historical exposed FMP key still worked during the October 13 check and should be revoked by its owner. Do not enter that old key in Settings.
 
-**Markets** — uses Financial Modeling Prep. Revoke the previously exposed key in your FMP account,
-then open **Réglages** on the panel and enter a replacement there. The replacement is stored in that
-browser only, not in Git. Quotes are fetched directly from FMP. QQQ, DIA and IWM returned HTTP 402
-during the audit; keep those symbols only if your provider plan supports them.
+**Updates/offline** — load once online and check Settings → diagnostics for an active offline cache. Tap **Mise à jour prête · appliquer** when offered. Disconnect Wi-Fi, close and reopen the page, and verify the clock, navigation and cached weather. Reconnect and verify fresh weather and agenda. A first-ever offline visit cannot install the cache.
+
+**Final tablet check** — landscape/fullscreen; open and close the seven-day forecast; switch fishing to tomorrow; test one safe speaker at low volume; leave running overnight across the 03:00 reload and sunrise. Record actual results instead of assuming desktop tests cover the device.
 
 ## Camera — not yet
 

@@ -2,6 +2,9 @@
 // here is astronomy math against the vendored SunCalc (vendor/suncalc.js).
 import { getMoonIllumination, getMoonPosition, getMoonTimes, getTimes } from "../vendor/suncalc.js";
 
+import { zonedDayStart, addDays, reminderTime } from "./time.js";
+import { zonedParts } from "./runtime.js";
+
 const MINUTE_MS = 60 * 1000;
 
 export function fishingWindow(periods, stars, now = Date.now()) {
@@ -10,19 +13,11 @@ export function fishingWindow(periods, stars, now = Date.now()) {
   return active ? (active.kind === "major" && stars >= 3 ? "optimal" : "active") : "inactive";
 }
 
-function startOfLocalDay(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 // Moon *position* (altitude) from SunCalc, sampled once a minute across the day, gives transit
 // (highest altitude, moon overhead) and underfoot (lowest altitude, moon opposite the meridian) —
 // brief §5.2. A day is cheap enough to sample in full on a device that's otherwise idle.
-function findMoonExtrema(dayStart, lat, lon) {
+function findMoonExtrema(dayStart, lat, lon, nextDay) {
   let maxTime = null, minTime = null;
-  const nextDay = new Date(dayStart);
-  nextDay.setDate(nextDay.getDate() + 1);
   const minutes = (nextDay - dayStart) / MINUTE_MS;
   // Detect an actual local extremum, not an arbitrary midnight boundary.
   for (let m = 0; m < minutes; m++) {
@@ -38,11 +33,17 @@ function findMoonExtrema(dayStart, lat, lon) {
 
 // Major periods (moon transit/underfoot, ±1h) and minor periods (moonrise/moonset, ±30min) for the
 // given calendar day, plus that day's sun times (used for the day-rating golden-hour bonus below).
-export function computeDayPeriods(dayStart, lat, lon) {
-  const { transit, underfoot } = findMoonExtrema(dayStart, lat, lon);
-  const moonTimes = getMoonTimes(dayStart, lat, lon);
-  const noon = new Date(dayStart);
-  noon.setHours(12);
+export function computeDayPeriods(date, lat, lon, timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) {
+  const day = zonedParts(date, timezone).day;
+  const dayStart = zonedDayStart(date, timezone);
+  const nextDay = new Date(reminderTime(addDays(day, 1) + "T00:00", timezone));
+  const { transit, underfoot } = findMoonExtrema(dayStart, lat, lon, nextDay);
+  const moonTimes = {};
+  for (const offset of [-1,0,1]) {
+    const times = getMoonTimes(new Date(+dayStart + offset * 86400000), lat, lon, true);
+    for (const key of ["rise", "set"]) if (times[key] >= dayStart && times[key] < nextDay) moonTimes[key] = times[key];
+  }
+  const noon = new Date(reminderTime(day + "T12:00", timezone));
   const sunTimes = getTimes(noon, lat, lon);
 
   const periods = [];
@@ -195,8 +196,11 @@ export function initSolunar(config, root) {
   const buttons = root.querySelectorAll("[data-fishing-day]");
   function showDay() {
     render(root, config, models[selectedDay]);
+    let label = root.querySelector(".fishing-selected-date");
+    if (!label) { label = document.createElement("p"); label.className = "fishing-selected-date"; root.querySelector(".fishing-day-controls").after(label); }
+    label.textContent = new Intl.DateTimeFormat(config.locale,{timeZone:config.timezone,dateStyle:"full"}).format(new Date(reminderTime(models[selectedDay].day + "T12:00",config.timezone)));
     for (const button of buttons) button.setAttribute("aria-pressed", String(Number(button.dataset.fishingDay) === selectedDay));
-    updateCountdown(root, config, periods);
+    updateCountdown(root, config, models[selectedDay]?.periods || []);
     updateHomeFishing();
   }
   function updateHomeFishing() {
@@ -215,19 +219,18 @@ export function initSolunar(config, root) {
   });
 
   function recompute() {
-    const today = startOfLocalDay(new Date());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = zonedDayStart(new Date(), config.timezone);
+    const tomorrow = new Date(reminderTime(addDays(zonedParts(today, config.timezone).day, 1) + "T00:00", config.timezone));
 
-    const todayResult = computeDayPeriods(today, lat, lon);
-    const tomorrowResult = computeDayPeriods(tomorrow, lat, lon);
+    const todayResult = computeDayPeriods(today, lat, lon, config.timezone);
+    const tomorrowResult = computeDayPeriods(tomorrow, lat, lon, config.timezone);
     periods = [...todayResult.periods, ...tomorrowResult.periods];
 
     models = [todayResult, tomorrowResult].map((result, index) => {
-      const noon = new Date(index ? tomorrow : today);
-      noon.setHours(12);
+      const day = zonedParts(index ? tomorrow : today, config.timezone).day;
+      const noon = new Date(reminderTime(day + "T12:00", config.timezone));
       const illum = getMoonIllumination(noon);
-      return { ...result, fraction: illum.fraction, waxing: illum.waxing,
+      return { ...result, day, fraction: illum.fraction, waxing: illum.waxing,
         stars: rateDay(illum.fraction, result.periods, result.sunTimes) };
     });
     showDay();
@@ -235,5 +238,24 @@ export function initSolunar(config, root) {
 
   recompute();
   setInterval(recompute, config.refresh.solunar);
-  setInterval(() => { updateCountdown(root, config, periods); updateHomeFishing(); }, 15 * 1000);
+  setInterval(() => { updateCountdown(root, config, models[selectedDay]?.periods || []); updateHomeFishing(); }, 15 * 1000);
+}
+
+export function initFishingIndicator(config, root) {
+  let model;
+  function update() {
+    const state=fishingWindow(model.periods,model.stars);
+    document.documentElement.dataset.fishing=state;
+    const banner=root.querySelector("#fishing-now");
+    banner.hidden=state==="inactive";
+    banner.textContent=state==="optimal" ? "Pêche · créneau solunaire favorable" : "Pêche · période solunaire active";
+  }
+  function compute() {
+    const today=zonedDayStart(new Date(),config.timezone);
+    model=computeDayPeriods(today,config.location.lat,config.location.lon,config.timezone);
+    const noon=new Date(reminderTime(zonedParts(today,config.timezone).day+"T12:00",config.timezone));
+    model.stars=rateDay(getMoonIllumination(noon).fraction,model.periods,model.sunTimes);update();
+  }
+  compute();const modelTimer=setInterval(compute,config.refresh.solunar),timer=setInterval(update,15000);
+  return {stop(){clearInterval(modelTimer);clearInterval(timer);}};
 }

@@ -1,5 +1,3 @@
-import { initAppearance } from "./appearance.js";
-import { initAlerts } from "./alerts.js";
 import { CONFIG } from "../config.js";
 import { createDailyReloadCheck } from "./runtime.js";
 
@@ -80,18 +78,18 @@ async function loadTile(name, path, exportName, id) {
     message.className = "tile-error";
     message.textContent =
       "Ce module est indisponible. Réessayez après avoir vérifié la connexion.";
-    root.appendChild(message);
+    root?.appendChild(message);
   }
 }
 
 function main() {
-  safeInit("alerts", () => initAlerts(CONFIG, document.getElementById("daily-alerts")));
+  loadTile("alerts", "./alerts.js", "initAlerts", "daily-alerts");
   loadTile("layout", "./dashboard.js", "initDashboard", "panel");
   loadTile("clock", "./clock.js", "initClock", "tile-header");
   loadTile("weather", "./weather.js", "initWeather", "tile-weather");
-  loadTile("solunar", "./solunar.js", "initSolunar", "tile-solunar");
+  loadTile("solunar", "./solunar.js", "initFishingIndicator", "tile-header");
   loadTile("calendar", "./calendar.js", "initCalendar", "tile-calendar");
-  const spotifyReady = loadTile("spotify", "./spotify.js", "initSpotify", "tile-spotify");
+  loadTile("spotify", "./spotify.js", "initSpotify", "tile-spotify");
   if (
     CONFIG.camera.feeds.some(
       (feed) => feed.enabled !== false && feed.snapshotUrl,
@@ -100,9 +98,8 @@ function main() {
     loadTile("camera", "./camera.js", "initCamera", "tile-cameras");
   }
   safeInit("offline indicator", setupOfflineIndicator);
-  safeInit("appearance", () => initAppearance(CONFIG, document, {
-    pauseMusic: async () => (await spotifyReady)?.pauseForMode() ?? "Spotify non configuré.",
-  }));
+  import("./appearance.js").then(m => m.initAppearance(CONFIG)).catch(console.warn);
+  import("./lifecycle.js").then(m => m.initLifecycle(CONFIG)).catch(console.warn);
   safeInit("burn-in shift", setupBurnInShift);
   safeInit("daily reload", () => setupDailyReload(CONFIG));
 }

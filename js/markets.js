@@ -172,7 +172,7 @@ export function initMarkets(config, root) {
     attribution.textContent = "Marchés par TradingView";
     root.querySelector(".market-list").appendChild(attribution);
     root.querySelector(".market-toggle").hidden = true;
-    root.querySelector(".market-note").textContent = "SPY · QQQ · DIA · IWM : ETF suivant les indices, cotés en USD. Cours et délais indiqués par TradingView. Connexion Internet requise.";
+    root.querySelector(".market-note").textContent = "ETF en USD · cours et délais selon TradingView.";
     const retry = document.createElement("button");
     retry.type = "button";
     retry.className = "market-retry";

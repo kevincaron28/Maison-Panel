@@ -1,6 +1,7 @@
 // Weather tile — Open-Meteo (no key, CORS: *). Brief §5.1.
 import { createPoller } from "./store.js";
 import { fetchJson } from "./network.js";
+import { providerDate } from "./time.js";
 import { weatherMood } from "./appearance.js";
 
 export function weatherCacheKey(config) {
@@ -115,6 +116,11 @@ export async function fetchWeather(config) {
 
   const data = await fetchJson(url);
 
+  return data;
+}
+
+export async function fetchAirQuality(config) {
+  const { lat, lon } = config.location;
   const airUrl = new URL(
     "https://air-quality-api.open-meteo.com/v1/air-quality",
   );
@@ -122,13 +128,7 @@ export async function fetchWeather(config) {
   airUrl.searchParams.set("longitude", lon);
   airUrl.searchParams.set("current", "us_aqi,pm2_5");
   airUrl.searchParams.set("timezone", config.timezone);
-  try {
-    data.airQuality = await fetchJson(airUrl, {}, 5000);
-  } catch (err) {
-    console.warn("[weather] air quality unavailable", err);
-    data.airQuality = null;
-  }
-  return data;
+  return fetchJson(airUrl, {}, 5000);
 }
 
 function localDate(dateString) {
@@ -150,7 +150,7 @@ export function weatherWarning(data, config) {
   const daily = data.daily;
   const hourly = data.hourly;
   const nextHours = hourly.time
-    .map((time, index) => ({ time: new Date(time), index }))
+    .map((time, index) => ({ time: providerDate(time, config.timezone), index }))
     .filter(
       ({ time }) =>
         time >= new Date() && time.getTime() < Date.now() + 24 * 60 * 60 * 1000,
@@ -239,8 +239,8 @@ function renderTodayStrip(root, data, config) {
   const rain = daily.precipitation_probability_max?.[0];
   const wind = daily.wind_speed_10m_max?.[0];
   const gust = daily.wind_gusts_10m_max?.[0];
-  const sunrise = new Date(daily.sunrise[0]);
-  const sunset = new Date(daily.sunset[0]);
+  const sunrise = providerDate(daily.sunrise[0], config.timezone);
+  const sunset = providerDate(daily.sunset[0], config.timezone);
   const now = Date.now();
   const daylight = Math.max(
     0,
@@ -253,6 +253,7 @@ function renderTodayStrip(root, data, config) {
     new Intl.DateTimeFormat(config.locale, {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: config.timezone,
     }).format(date);
 
   root.querySelector('[data-metric="uv"]').innerHTML = metric(
@@ -275,13 +276,13 @@ function renderTodayStrip(root, data, config) {
       : `${config.units.wind} · rafales ${Math.round(gust)}`,
   );
   root.querySelector('[data-metric="air"]').innerHTML = metric(
-    "AQI",
-    air?.us_aqi == null ? "—" : Math.round(air.us_aqi),
+    "Air",
+    air?.us_aqi == null ? "—" : air.us_aqi <= 50 ? "Bon" : air.us_aqi <= 100 ? "Modéré" : "Dégradé",
     air?.pm2_5 == null
       ? isFr
         ? "air"
         : "air"
-      : `PM2.5 ${Math.round(air.pm2_5)}`,
+      : `AQI ${Math.round(air.us_aqi)}`,
   );
 
   root.querySelector(".daylight-percent").textContent =
@@ -297,8 +298,8 @@ function renderTodayStrip(root, data, config) {
   alert.textContent = warning ? warning.text : "";
 }
 
-export function hourlyIndices(times, now, count = 5, step = 3) {
-  const first = times.findIndex((time) => new Date(time) >= now);
+export function hourlyIndices(times, now, count = 5, step = 3, timezone = "America/Toronto") {
+  const first = times.findIndex((time) => providerDate(time, timezone) >= now);
   if (first < 0) return [];
   return Array.from({ length: count }, (_, i) => first + i * step).filter(
     (i) => i < times.length,
@@ -325,17 +326,21 @@ function render(root, data, config, meta) {
     new Date(),
     config.ui?.hourlyCount,
     config.ui?.hourlyStep,
+    config.timezone,
   )) {
-    const hour = new Date(data.hourly.time[i]).getHours();
+    const instant = providerDate(data.hourly.time[i], config.timezone);
+    const hour = new Intl.DateTimeFormat(config.locale,{timeZone:config.timezone,hour:"numeric",hourCycle:"h23"}).format(instant);
+    const dayIndex = data.daily.time.indexOf(data.hourly.time[i].slice(0,10));
+    const isDay = dayIndex >= 0 && instant >= providerDate(data.daily.sunrise[dayIndex],config.timezone) && instant < providerDate(data.daily.sunset[dayIndex],config.timezone);
     const el = document.createElement("div");
     el.className = "hour";
-    el.innerHTML = `<div>${hour}h</div>${buildIcon(data.hourly.weather_code[i], 1)}<div>${Math.round(
+    el.innerHTML = `<div>${hour}</div>${buildIcon(data.hourly.weather_code[i], isDay)}<div>${Math.round(
       data.hourly.temperature_2m[i],
     )}°</div><div>${data.hourly.precipitation_probability[i]}%</div>`;
     hourly.appendChild(el);
   }
 
-  const days = root.querySelector(".daily-rows");
+  const days = document.querySelector("#forecast-days .daily-rows");
   days.innerHTML = "";
   for (let i = 0; i < data.daily.time.length; i++) {
     const dayDate = localDate(data.daily.time[i]);
@@ -375,14 +380,16 @@ function render(root, data, config, meta) {
         {
           hour: "2-digit",
           minute: "2-digit",
+      timeZone: config.timezone,
         },
-      ).format(new Date(data.daily.sunrise[i]))}–${new Intl.DateTimeFormat(
+      ).format(providerDate(data.daily.sunrise[i], config.timezone))}–${new Intl.DateTimeFormat(
         config.locale,
         {
           hour: "2-digit",
           minute: "2-digit",
+      timeZone: config.timezone,
         },
-      ).format(new Date(data.daily.sunset[i]))}</span>`;
+      ).format(providerDate(data.daily.sunset[i], config.timezone))}</span>`;
 
     summary.addEventListener("click", () => {
       const expanded = !summary.matches("[aria-expanded='true']");
@@ -399,10 +406,12 @@ function render(root, data, config, meta) {
     .classList.toggle("is-stale", meta.stale);
   const staleNote = root.querySelector(".stale-note");
   if (staleNote)
-    staleNote.textContent = `${meta.stale ? "Données en cache · " : ""}Conditions à ${c.time?.replace("T", " · ") || "heure inconnue"} · ${config.timezone} · ${config.units.temp === "fahrenheit" ? "°F" : "°C"}`;
+    staleNote.textContent = `${meta.stale ? "En cache · " : "Actualisée à "}${c.time?.slice(11,16) || "heure inconnue"}`;
   const attribution = root.querySelector(".attribution");
   if (attribution) {
-    attribution.textContent = `Open-Meteo · estimation météo · ${config.location.lat}, ${config.location.lon} · CC BY 4.0`;
+    attribution.textContent = "Open-Meteo · CC BY 4.0";
+    const info = root.querySelector(".weather-source-info");
+    if (info) info.textContent = `Estimation à ${c.time} · ${config.timezone} · ${config.location.lat}, ${config.location.lon}. Air : AQI américain; PM2.5 ${data.airQuality?.current?.pm2_5 ?? "—"} µg/m³.`;
     attribution.title = "Les estimations peuvent différer de l’application météo du téléphone. Le ressenti est indiqué séparément.";
   }
 
@@ -417,11 +426,13 @@ export function initWeather(config, root) {
       ? `— ${config.location.label}`
       : "";
 
+  let latest = null, latestMeta = null, air = null;
+  const airPoller = createPoller({key:weatherCacheKey(config)+":air",intervalMs:config.refresh.weather,fetcher:()=>fetchAirQuality(config),onData:(data,meta)=>{air=meta.stale ? null : data;if(latest) render(root,{...latest,airQuality:air},config,latestMeta);}});
   const poller = createPoller({
     key: weatherCacheKey(config),
     intervalMs: config.refresh.weather,
     fetcher: () => fetchWeather(config),
-    onData: (data, meta) => render(root, data, config, meta),
+    onData: (data, meta) => { latest=data;latestMeta=meta;render(root,{...data,airQuality:air},config,meta); },
     onError: (err) => {
       console.warn("[weather]", err);
       root.querySelector(".stale-note").textContent =
@@ -429,5 +440,6 @@ export function initWeather(config, root) {
     },
   });
   poller.start();
-  return poller;
+  airPoller.start();
+  return {start:poller.start,stop(){poller.stop();airPoller.stop();}};
 }

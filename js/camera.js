@@ -19,7 +19,7 @@ function ensureOverlay() {
     .querySelector(".camera-overlay-close")
     .addEventListener("click", closeOverlay);
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeOverlay();
+    if (event.key === "Escape" && !overlay.hidden) { event.preventDefault(); closeOverlay(); }
   });
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeOverlay();
@@ -34,6 +34,8 @@ function closeOverlay() {
 
 function openOverlay(feed, currentSrc) {
   const el = ensureOverlay();
+  const dialog = document.getElementById("camera-dialog");
+  if (dialog?.open) dialog.appendChild(el);
   el.dataset.feedId = feed.id;
   el.querySelector(".camera-overlay-name").textContent = feed.name;
   // Seed from the thumbnail's already-loaded image immediately — otherwise the overlay shows a
@@ -70,19 +72,60 @@ function initFeed(config, root, feed) {
     status.textContent = state === "offline" ? "hors ligne" : "";
   }
 
-  function tick() {
-    const url = snapshotUrl(feed);
+  let timer, failures=0, pending=null, objectUrl=null;
+  const visible=()=>!document.hidden && !root.closest("[hidden]") && (!root.closest("dialog") || root.closest("dialog").open);
+  function schedule(){clearTimeout(timer);timer=setTimeout(tick,Math.min(60000,(feed.refreshMs||config.refresh.camera)*2**failures));}
+  function clearPrivate() {
+    pending?.abort(); pending=null;
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl=null;
+    img.removeAttribute("src");
+    if (overlay?.dataset.feedId === feed.id) overlay.querySelector(".camera-overlay-img").removeAttribute("src");
+  }
+  async function tick() {
+    if(!visible()) return;
+    if(pending) return;
+    let url = snapshotUrl(feed);
+    if(feed.private) {
+      const controller = new AbortController(); pending=controller;
+      const timeout=setTimeout(()=>controller.abort(),15000);
+      try {
+        const response=await fetch(url,{cache:"no-store",credentials:"same-origin",signal:controller.signal});
+        if(!response.ok) {
+          const denied=response.status===401;
+          clearPrivate(); failures=Math.min(failures+1,5);
+          setState("offline");
+          status.textContent=denied?"Connectez-vous dans Réglages pour voir la caméra.":"Caméra indisponible · vérifiez le PC et le câble réseau.";
+          schedule(); return;
+        }
+        if(!response.headers.get("Content-Type")?.includes("image/jpeg")) throw new Error("Invalid image");
+        const blob=await response.blob();
+        if(controller.signal.aborted || !visible()) return;
+        if(objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl=URL.createObjectURL(blob); url=objectUrl;
+      } catch {
+        if(controller.signal.aborted && !visible()) return;
+        clearPrivate(); failures=Math.min(failures+1,5); setState("offline"); schedule(); return;
+      } finally { clearTimeout(timeout); if(pending===controller) pending=null; }
+    }
     img.src = url;
     if (overlay && !overlay.hidden && overlay.dataset.feedId === feed.id) {
       overlay.querySelector(".camera-overlay-img").src = url;
     }
   }
 
-  img.addEventListener("load", () => setState("live"));
-  img.addEventListener("error", () => setState("offline"));
+  img.addEventListener("load", () => {failures=0;setState("live");schedule();});
+  img.addEventListener("error", () => {failures=Math.min(failures+1,5);setState("offline");schedule();});
 
+  const visibility=()=>{clearTimeout(timer);if(feed.private&&!visible())clearPrivate();else tick();};
+  document.addEventListener("visibilitychange",visibility);
+  document.addEventListener("maison-camera-visibility",visibility);
+  if(feed.private) {
+    window.addEventListener("pagehide",()=>{clearTimeout(timer);clearPrivate();});
+    window.addEventListener("pageshow",visibility);
+    window.addEventListener("storage",event=>{if(event.key==="maison-panel:logout"){clearTimeout(timer);clearPrivate();setState("offline");}});
+  }
   tick();
-  setInterval(tick, feed.refreshMs || config.refresh.camera);
 }
 
 export function initCamera(config, root) {

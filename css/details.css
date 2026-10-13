@@ -11,8 +11,7 @@ html:has(.detail-page), body.detail-page { height: auto; min-height: 100%; }
 .detail-card h2 { margin-bottom: 18px; font-size: 24px; }
 .detail-card p { line-height: 1.6; margin: 12px 0; }
 .detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; }
-.detail-page .markets-widget { height: 550px; }
-.economic-widget { display: block; width: 100%; height: 560px; border: 0; margin: 16px 0; }
+.detail-page .markets-widget { height: 320px; }
 #economic-upcoming { line-height: 1.6; padding-left: 24px; }
 #economic-upcoming li { margin: 10px 0; }
 .detail-page .daily-alerts { max-height: none; }
@@ -42,4 +41,40 @@ html:has(.detail-page), body.detail-page { height: auto; min-height: 100%; }
   .detail-page .home-nav > div { flex-wrap: wrap; }
 }
 
-#economic-upcoming { max-height: 240px; overflow: auto; }
+/* A quiet overview; supporting context is available on demand. */
+[data-page="markets"] #panel { max-width: 1200px; }
+[data-page="markets"] .page-heading { margin: 24px 0; }
+.markets-overview { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+[data-page="markets"] .market-caption,
+[data-page="markets"] .market-note { color: var(--ink-mid); font-size: 16px; line-height: 1.5; }
+#economic-upcoming { list-style: none; padding: 0; margin: 20px 0 24px; }
+#economic-upcoming li { padding: 16px 0; margin: 0; border-bottom: 1px solid var(--line); }
+#economic-upcoming li:first-child { padding-top: 0; }
+#economic-upcoming a { display: block; text-decoration: none; line-height: 1.6; }
+.market-reference { border-top: 1px solid var(--line); }
+.market-reference > summary { min-height: 48px; color: var(--ink-mid); }
+.market-reference .detail-grid { padding: 16px 0 24px; gap: 40px; }
+.market-reference h2 { font-size: 22px; margin: 20px 0 12px; }
+.market-reference p, #economic-all { line-height: 1.6; }
+#economic-all { padding-left: 22px; }
+#economic-all li { margin-bottom: 14px; }
+@media (max-width: 850px) {
+  .markets-overview { grid-template-columns: 1fr; }
+}
+
+[data-page="settings"] #panel { max-width:1050px; }
+[data-page="settings"] label { display:block; margin:16px 0 8px; }
+[data-page="settings"] input:not([type="hidden"]),[data-page="settings"] select { width:100%; min-height:48px; padding:12px; font:inherit; color:var(--ink-high); background:var(--ground); border:1px solid var(--line); border-radius:10px; }
+.settings-row,.settings-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:12px 0; }
+.action-link { display:inline-block; padding:12px 16px; min-height:48px; border:1px solid var(--line); border-radius:24px; }
+.muted { color:var(--ink-mid); font-size:16px; }
+.reminder-list { list-style:none; padding:0; }
+.reminder-list li { display:flex; flex-wrap:wrap; gap:10px; padding:16px 0; border-top:1px solid var(--line); }
+.reminder-list li span { flex:1 1 100%; line-height:1.5; }
+code { overflow-wrap:anywhere; }
+.fishing-selected-date { font-size:18px; color:var(--ink-mid); margin:10px 0; }
+[data-page="fishing"] main { grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); align-items:start; }
+[data-page="fishing"] main > .detail-grid { grid-column:1/-1; }
+[data-page="fishing"] .fishing-period { flex-wrap:wrap; }
+[data-page="fishing"] .page-heading { margin:24px 0; }
+@media(max-width:1000px) { [data-page="fishing"] main { grid-template-columns:1fr; } }

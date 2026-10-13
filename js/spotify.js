@@ -508,16 +508,4 @@ export function initSpotify(config, root) {
     }
     tick();
   })();
-  return {
-    async pauseForMode() {
-      if (state.busy) return "Spotify occupé · réessayez le mode pour mettre en pause.";
-      await pollNowPlaying();
-      if (state.status === "signed-out") return "Spotify non connecté · aucune pause envoyée.";
-      if (state.unavailable) return "Spotify indisponible · pause non confirmée.";
-      if (!state.isPlaying) return "Spotify est déjà en pause ou inactif.";
-      if (state.restricted || state.disallows?.pausing) return "Cet appareil ne permet pas la pause depuis le panneau.";
-      const sent = await act("PUT", "/pause");
-      return sent ? "Commande de pause Spotify envoyée." : "Pause Spotify non confirmée · vérifiez le lecteur.";
-    },
-  };
 }

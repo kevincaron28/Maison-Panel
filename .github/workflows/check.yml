@@ -1,5 +1,10 @@
 name: Check panel
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 14 * * 1'
+  workflow_dispatch:
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -11,4 +16,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run check:calendar
       - run: npm run package

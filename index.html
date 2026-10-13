@@ -34,34 +34,14 @@
     >
     <div id="panel">
       <nav class="home-nav" aria-label="Navigation principale">
-        <a class="wordmark" href="./">maison.</a
-        ><span class="home-caption">LE QUOTIDIEN, TOUT SIMPLEMENT.</span>
-        <div>
-          <a class="panel-shortcut" href="fishing.html">Pêche</a>
-          <a class="panel-shortcut" href="markets.html">Marchés</a>
-          <button type="button" id="theme-toggle" aria-label="Changer le thème">
-            Thème clair</button
-          ><button
-            type="button"
-            id="explorer-open"
-            aria-expanded="false"
-            aria-controls="tile-side"
-          >
-            Explorer ↗
-          </button>
-        </div>
+        <a class="wordmark" href="./">maison.</a>
+        <div><a href="./" aria-current="page">Accueil</a><a class="panel-shortcut" href="fishing.html">Pêche</a><a class="panel-shortcut" href="markets.html">Marchés</a><a href="settings.html">Réglages</a></div>
       </nav>
       <main id="tile-main">
         <header id="tile-header">
           <p class="greeting">Bienvenue, famille Caron.</p>
           <div class="clock-time">--:--</div>
           <div class="clock-date">Maison</div>
-          <div class="home-modes" role="group" aria-label="Modes du panneau">
-            <button type="button" data-home-mode="home" aria-pressed="true">Bonjour</button>
-            <button type="button" data-home-mode="away" aria-pressed="false">Absent</button>
-            <button type="button" data-home-mode="sleep" aria-pressed="false">Bonne nuit</button>
-          </div>
-          <p id="home-mode-status" role="status">Modes du panneau · Absent et Bonne nuit mettent Spotify en pause.</p>
           <p id="fishing-now" hidden></p>
         </header>
         <section id="tile-weather" aria-label="Météo">
@@ -101,7 +81,7 @@
               </div>
             </section>
             <div class="stale-note" role="status"></div>
-            <div class="attribution">Météo : Open-Meteo · CC BY 4.0</div>
+            <div class="weather-meta"><span class="attribution">Open-Meteo · CC BY 4.0</span><details class="weather-info"><summary>Infos</summary><p class="weather-source-info"></p></details></div>
           </div>
         </section>
         <section id="tile-calendar">
@@ -109,7 +89,7 @@
             <h2>À l’agenda</h2>
             <span>Votre calendrier</span>
           </div>
-          <div class="daily-alerts" id="daily-alerts" aria-live="polite"></div><a class="reminders-link" href="settings.html#reminders">Gérer les rappels importants</a><div class="calendar-embed-container"></div>
+          <div class="daily-alerts" id="daily-alerts" aria-live="polite"></div><div class="calendar-embed-container"></div>
         </section>
       </main>
       <footer id="tile-spotify">
@@ -120,63 +100,7 @@
         <div class="spotify-body"></div>
         <div class="spotify-status" role="status"></div>
       </footer>
-      <section
-        id="tile-side"
-        class="explorer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="explorer-title"
-        hidden
-      >
-        <div class="section-heading explorer-heading">
-          <div>
-            <span class="eyebrow">MAISON</span>
-            <h2 id="explorer-title">Explorer la maison</h2>
-          </div>
-          <button id="explorer-close" type="button">Fermer</button>
-        </div>
-        <nav class="explorer-tabs" aria-label="Rubriques">
-          <button type="button" id="explorer-menu-back">Toutes les rubriques</button>
-          <a class="panel-shortcut" href="fishing.html">Pêche</a>
-          <a class="panel-shortcut" href="markets.html">Marchés</a>
-          <a href="settings.html">Réglages</a>
-        </nav>
-        <div id="explorer-menu">
-          <p>Choisissez une rubrique. La météo et l’agenda restent sur l’accueil; les commandes musicales sont accessibles en bas du panneau.</p>
-          <a class="panel-shortcut" href="fishing.html">Pêche · lune et périodes favorables</a>
-          <a class="panel-shortcut" href="markets.html">Marchés · les quatre indices</a>
-        </div>
-        <div class="explorer-grid">
-          <section id="tile-solunar">
-            <h2>Pêche & lune</h2>
-            <div class="fishing-summary"><span class="moon-disc" aria-hidden="true"></span><div><div class="moon-phase-label"></div><div class="day-rating" aria-label="Indice solunaire"></div></div></div>
-            <div class="solunar-details">
-              <div class="next-period"></div>
-              <div class="fishing-sun"></div>
-              <div class="fishing-day-controls" aria-label="Jour de pêche"><button type="button" data-fishing-day="0" aria-pressed="true">Aujourd’hui</button><button type="button" data-fishing-day="1" aria-pressed="false">Demain</button></div>
-              <div class="solunar-periods"></div>
-              <p class="fishing-note">Heures locales · fenêtres solunaires indicatives, sans garantie de prises.</p>
-            </div>
-          </section>
-          <section id="tile-markets">
-            <div class="markets-heading">
-              <h2>Marchés</h2>
-              <button class="market-toggle" type="button" aria-expanded="false">
-                Afficher plus
-              </button>
-            </div>
-            <div class="market-list"></div>
-            <div class="market-note stale-note"></div>
-          </section>
-          <section id="tile-cameras" hidden>
-            <h2>Caméras</h2>
-            <div class="camera-feeds"></div>
-          </section>
-          <a class="settings-link" href="settings.html"
-            >Réglages du panneau ↗</a
-          >
-        </div>
-      </section>
+      <dialog id="camera-dialog"><div class="section-heading"><h2>Caméras</h2><button type="button" id="camera-close">Fermer</button></div><section id="tile-cameras" hidden><div class="camera-feeds"></div></section></dialog>
     </div>
     <div id="offline-indicator" role="status">
       Hors ligne · dernières données disponibles

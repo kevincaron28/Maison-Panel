@@ -2,9 +2,7 @@
 
 October 12, 2026 release. Physical tablet/speaker checks remain.
 
-The panel-mode portion of priority two is now implemented: Bonjour restores normal brightness,
-Absent dims and requests Spotify pause, and Bonne nuit dims until the next sunrise and requests
-pause. Device scenes still require Home Assistant. Light/dark appearance follows local solar
+October 13: removed the Bonjour, Absent and Bonne nuit presets. Light/dark appearance follows local solar
 times by default, with optional manual overrides. Weather visuals and active solunar highlights
 are implemented. They are static accents; the strongest fishing highlight requires an active
 major period rated at least 3/4. No promise of catches or safe boating conditions is implied.

@@ -61,18 +61,19 @@ test("dashboard navigation and disclosure controls work", async (t) => {
     document.querySelector(".greeting").textContent,
     "Bienvenue, famille Caron.",
   );
-  document.getElementById("explorer-open").click();
-  assert.equal(document.getElementById("tile-side").hidden, false);
-  assert.equal(document.getElementById("explorer-menu").hidden, false);
-  assert.equal(document.getElementById("tile-solunar").hidden, true);
-  assert.equal(document.getElementById("tile-markets").hidden, true);
-  document.getElementById("explorer-close").click();
-  assert.equal(document.getElementById("tile-side").hidden, true);
+  assert.equal(document.getElementById("explorer-open"),null);
+  assert.ok(document.querySelector('.home-nav a[href="settings.html"]'));
+  const dialog=document.querySelector(".forecast-dialog");
+  dialog.showModal=()=>{dialog.open=true;};
+  dialog.close=()=>{dialog.open=false;dialog.dispatchEvent(new dom.window.Event("close"));};
   assert.equal(document.querySelector('.home-nav a[href="fishing.html"]').textContent,"Pêche");
   assert.equal(document.querySelector('.home-nav a[href="markets.html"]').textContent,"Marchés");
   assert.equal(document.querySelectorAll('button[data-panel="tile-markets"]').length,0);
   document.getElementById("forecast-toggle").click();
   assert.equal(document.getElementById("forecast-days").hidden, false);
+  assert.equal(dialog.open,true);
+  dialog.querySelector("button").click();
+  assert.equal(document.getElementById("forecast-days").hidden,true);
   dom.window.close();
 });
 const config = {
@@ -282,19 +283,22 @@ test("Spotify configuration errors do not erase the saved refresh token", async 
 });
 
 test("fishing opens with complete windows and tomorrow changes the schedule", async (t) => {
-  const dom = new JSDOM(await readFile(new URL("../index.html", import.meta.url), "utf8"));
+  const dom = new JSDOM(await readFile(new URL("../fishing.html", import.meta.url), "utf8"));
   t.mock.property(globalThis, "document", dom.window.document);
   t.mock.method(globalThis, "setInterval", () => 1);
   const root = document.getElementById("tile-solunar");
   initSolunar({...config, location:{lat:45.167,lon:-73.517},refresh:{solunar:300000}},root);
   assert.equal(root.querySelector(".solunar-details").hidden, false);
   const before = root.querySelector(".solunar-periods").textContent;
+  const countdownBefore=root.querySelector(".next-period").textContent;
   assert.match(before, /Majeure/);
   assert.match(before, /Mineure/);
   assert.match(before, /pic/);
   assert.ok(root.querySelectorAll("time").length >= 3);
   root.querySelector('[data-fishing-day="1"]').click();
   assert.notEqual(root.querySelector(".solunar-periods").textContent,before);
+  assert.notEqual(root.querySelector(".next-period").textContent,countdownBefore);
+  assert.ok(root.querySelector(".fishing-selected-date").textContent);
   assert.equal(root.querySelector('[data-fishing-day="1"]').getAttribute("aria-pressed"),"true");
   dom.window.close();
 });
@@ -343,33 +347,6 @@ test("existing Spotify session renders track, speaker and all playback controls"
   assert.match(root.textContent,/Cuisine/);
   for (const name of ["Précédent","Pause","Suivant","Volume moins","Volume plus"]) assert.ok(root.querySelector(`[aria-label="${name}"]`));
   assert.equal(root.querySelector(".spotify-connect-btn"),null);
-  dom.window.close();
-});
-
-test("home modes pause active Spotify once and report disconnected sessions honestly", async (t) => {
-  const dom = new JSDOM(await readFile(new URL("../index.html",import.meta.url),"utf8"),{url:"https://example.test/"});
-  t.mock.property(globalThis,"document",dom.window.document);
-  t.mock.property(globalThis,"location",dom.window.location);
-  t.mock.property(globalThis,"localStorage",storage());
-  t.mock.method(globalThis,"setTimeout",()=>1);
-  localStorage.setItem("maison-panel:spotify-tokens",JSON.stringify({accessToken:"fixture",expiresAt:Date.now()+3600000}));
-  const playback = {item:{name:"Fixture",artists:[]},device:{id:"speaker"},is_playing:true};
-  const writes = [];
-  t.mock.method(globalThis,"fetch",async(url,options)=>{
-    if (options.method === "PUT") {
-      writes.push(new URL(url).pathname); playback.is_playing=false;
-      return {ok:true,status:204};
-    }
-    return {ok:true,status:200,text:async()=>JSON.stringify(playback)};
-  });
-  const music = initSpotify({spotify:{clientId:"mode-fixture",refresh:10000}},document.getElementById("tile-spotify"));
-  await flush();
-  assert.match(await music.pauseForMode(),/envoyée/);
-  assert.deepEqual(writes,["/v1/me/player/pause"]);
-  assert.match(await music.pauseForMode(),/déjà en pause/);
-  localStorage.removeItem("maison-panel:spotify-tokens");
-  assert.match(await music.pauseForMode(),/non connecté/);
-  assert.equal(writes.length,1);
   dom.window.close();
 });
 
@@ -487,7 +464,7 @@ test("Spotify repeated unauthorized response requires reconnect instead of endle
 });
 
 test("markets show all four benchmarks in a separate origin without exposing app storage", async (t) => {
-  const dom = new JSDOM(await readFile(new URL("../index.html", import.meta.url), "utf8"),{url:"https://maison-panel.kcaron.workers.dev/"});
+  const dom = new JSDOM(await readFile(new URL("../markets.html", import.meta.url), "utf8"),{url:"https://maison-panel.kcaron.workers.dev/"});
   t.mock.property(globalThis,"document",dom.window.document);
   t.mock.property(globalThis,"location",dom.window.location);
   const root = document.getElementById("tile-markets");
