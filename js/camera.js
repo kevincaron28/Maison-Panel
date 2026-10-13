@@ -68,6 +68,27 @@ function initFeed(config, root, feed) {
   const img = card.querySelector(".camera-feed-img");
   img.alt = `Vue de ${feed.name}`;
   const status = card.querySelector(".camera-feed-status");
+  if (feed.private && feed.controlUrl) {
+    const controls = document.createElement('section');
+    controls.className = 'camera-controls'; controls.setAttribute('aria-label','Orientation de la caméra');
+    controls.innerHTML = `<div><h3>Orienter la caméra</h3><p>Un toucher = un petit déplacement.</p><p class="camera-control-status" role="status">L’image se renouvelle après quelques secondes.</p></div><div class="camera-direction-pad"><button type="button" data-action="up" aria-label="Orienter vers le haut">↑</button><button type="button" data-action="left" aria-label="Orienter vers la gauche">←</button><button type="button" data-action="stop">Stop</button><button type="button" data-action="right" aria-label="Orienter vers la droite">→</button><button type="button" data-action="down" aria-label="Orienter vers le bas">↓</button></div>`;
+    root.append(controls);
+    let controlling = false;
+    for (const button of controls.querySelectorAll('button')) button.onclick = async () => {
+      if (controlling && button.dataset.action !== 'stop') return;
+      controlling = true;
+      const note = controls.querySelector('.camera-control-status');
+      for(const b of controls.querySelectorAll('button')) b.disabled = b.dataset.action !== 'stop';
+      note.textContent = 'Commande en cours…';
+      try {
+        const response = await fetch(feed.controlUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:button.dataset.action}),signal:AbortSignal.timeout(9000)});
+        if (!response.ok) throw new Error(response.status === 401 ? 'Connectez-vous dans Réglages.' : 'Commande indisponible · vérifiez le PC et la caméra.');
+        note.textContent = button.dataset.action === 'stop' ? 'Arrêt confirmé.' : 'Déplacement terminé · actualisation de l’image…';
+        tick();
+      } catch(error) { note.textContent = error.name === 'TimeoutError' ? 'Pas de confirmation reçue. Touchez Stop.' : error.message; }
+      finally { controlling = false; for(const b of controls.querySelectorAll('button')) b.disabled = false; }
+    };
+  }
 
   card.addEventListener("click", () => { if(img.getAttribute("src") && !card.classList.contains("is-offline")) openOverlay(feed, img.src); });
 

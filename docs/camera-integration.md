@@ -31,3 +31,9 @@ To disable: set the camera feed's `enabled` to false and deploy, then stop the b
 Tests cover anonymous denial, publisher/viewer separation, concurrent viewer requests, malformed frames and non-storage. Verify the deployed signed-in view and a separate anonymous request after release. A tablet requires its own private panel sign-in and an updated shell.
 
 October 13 verification: all 56 tests passed, calendar coverage check passed, and packaging/deployment succeeded. Release `2026.10.13-a8dfeba9ffd2`, Worker version `c37d5bf2-9b05-4c38-b62e-f3179de297e7`. The production signed-in browser displayed fresh camera images and enlargement; an anonymous production snapshot request returned 401. Windows auto-start remains blocked. Tablet display and Wi-Fi have not been verified.
+
+## Direction controls
+
+The camera view now provides large up/down/left/right and Stop buttons. Owner-authenticated, same-origin JSON POSTs to `/api/camera/control` accept only those five actions. The relay serializes movement requests, with a separate stop slot and bounded response timeout. The bridge's `camera-ptz.mjs` uses the verified HM203 ONVIF PTZ endpoint and Profile_1 on the same host as its private RTSP configuration. A move requests a 0.4-second camera timeout and sends an explicit Stop after 250 ms; Stop is also attempted when the movement request fails. No arbitrary URLs, XML, credentials or commands are accepted from the browser.
+
+Copy both bridge modules to the private runtime directory when updating. The bridge was restarted manually for this release; auto-start remains unresolved. Live left/right commands and Stop were acknowledged by the camera, and production browser movement requests completed successfully. The image remains a periodically refreshed snapshot, so movement feedback may take several seconds. Audio, optical zoom, presets and tracking controls are not included.

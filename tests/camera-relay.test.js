@@ -36,3 +36,32 @@ test("relay coalesces viewers, validates frames and never persists them",async t
   relay.webSocketMessage(socket,JSON.stringify({id:command.id,jpeg:"YWJj"}));
   assert.equal((await bad).status,503);
 });
+
+test('camera controls require owner session and same-origin JSON, with fixed actions only', async()=>{
+  let forwarded = 0;
+  const env={APP_ORIGIN:'https://panel.test',PRIVATE_DATA:{get:async()=>({sub:'owner',expires:Date.now()+10000})},GOOGLE_CLIENT_ID:'test',GOOGLE_CLIENT_SECRET:'test',SESSION_SECRET:'test',ALLOWED_EMAIL:'owner@test',CAMERA_RELAY:{getByName:()=>({fetch:async()=>{forwarded++;return Response.json({ok:true});}})}};
+  const send=(action,headers={})=>worker.fetch(new Request('https://panel.test/api/camera/control',{method:'POST',headers:{Origin:'https://panel.test','Content-Type':'application/json',...headers},body:JSON.stringify({action})}),env);
+  assert.equal((await send('left')).status,401);
+  const cookie={Cookie:`__Host-maison-session=${'a'.repeat(43)}`};
+  assert.equal((await send('left',{...cookie,Origin:'https://evil.test'})).status,403);
+  assert.equal((await send('reboot',cookie)).status,400);
+  assert.equal((await send('left',cookie)).status,200);
+  assert.equal(forwarded,1);
+});
+
+test('relay serializes motion and resolves only matching control acknowledgements',async t=>{
+  const original=globalThis.WebSocketRequestResponsePair;
+  globalThis.WebSocketRequestResponsePair=class {};
+  t.after(()=>{globalThis.WebSocketRequestResponsePair=original;});
+  let command;
+  const socket={readyState:1,send:raw=>command=JSON.parse(raw)};
+  const relay=new CameraRelay({setWebSocketAutoResponse(){},getWebSockets:()=>[socket]});
+  const request=()=>new Request('https://panel.test/api/camera/control',{method:'POST',body:JSON.stringify({action:'left'})});
+  const first=relay.fetch(request());
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(command.action,'left');
+  assert.equal((await relay.fetch(request())).status,409);
+  relay.webSocketMessage(socket,JSON.stringify({id:command.id,ok:true}));
+  assert.equal((await first).status,200);
+  assert.equal(relay.controls.size,0);
+});

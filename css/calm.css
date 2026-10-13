@@ -1013,3 +1013,14 @@ button:disabled,input:disabled { opacity: .45; cursor: default; }
   .forecast-dialog .day-details { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .forecast-dialog .day-details > :last-child { grid-column:1/-1; }
 }
+.camera-controls { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:16px; border:1px solid var(--line); border-radius:18px; margin-top:12px; }
+.camera-controls h3 { font-size:22px; margin:0 0 8px; }
+.camera-controls p { font-size:18px; color:var(--ink-mid); margin:6px 0; }
+.camera-direction-pad { display:grid; grid-template-columns:repeat(3,64px); gap:8px; flex-shrink:0; }
+.camera-direction-pad button { min-height:56px; padding:4px; font-size:28px; }
+.camera-direction-pad [data-action="up"] { grid-column:2; }
+.camera-direction-pad [data-action="left"] { grid-column:1; }
+.camera-direction-pad [data-action="stop"] { font-size:18px; }
+.camera-direction-pad [data-action="down"] { grid-column:2; }
+@media(min-width:851px) { #camera-dialog .camera-feeds { display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:16px; align-items:center; } .camera-controls { flex-direction:column; margin:0; } }
+@media(max-width:600px) { .camera-controls { flex-direction:column; } }

@@ -296,6 +296,15 @@ export default {
       }
       const user = await session(request, env);
       if (!user) return json({ error: "sign_in_required" }, 401);
+      if (url.pathname === "/api/camera/control" && request.method === "POST") {
+        if (!env.CAMERA_RELAY) return json({ error: "camera_unavailable" }, 503);
+        if (Number(request.headers.get("Content-Length")) > 128) return json({error:"invalid_control"},400);
+        const body = await request.text();
+        if (body.length > 128) return json({error:"invalid_control"},400);
+        let command; try { command = JSON.parse(body); } catch { return json({error:"invalid_control"},400); }
+        if (!['left','right','up','down','stop'].includes(command?.action)) return json({error:"invalid_control"},400);
+        return env.CAMERA_RELAY.getByName("home").fetch(new Request(request.url,{method:'POST',body:JSON.stringify({action:command.action})}));
+      }
       if (url.pathname === "/api/camera/snapshot" && request.method === "GET") {
         if (!env.CAMERA_RELAY) return json({ error: "camera_unavailable" }, 503);
         return env.CAMERA_RELAY.getByName("home").fetch(request);
