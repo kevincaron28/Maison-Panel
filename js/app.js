@@ -83,6 +83,7 @@ async function loadTile(name, path, exportName, id) {
 }
 
 function main() {
+  loadTile("morning", "./morning.js", "initMorning", "panel");
   loadTile("alerts", "./alerts.js", "initAlerts", "daily-alerts");
   loadTile("layout", "./dashboard.js", "initDashboard", "panel");
   loadTile("clock", "./clock.js", "initClock", "tile-header");

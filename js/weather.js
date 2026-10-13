@@ -52,7 +52,7 @@ const WMO = {
   },
 };
 
-function weatherLabel(code, locale) {
+export function weatherLabel(code, locale) {
   const entry = WMO[code];
   if (!entry) return "";
   return locale?.startsWith("fr") ? entry.fr : entry.en;
@@ -356,10 +356,8 @@ function render(root, data, config, meta) {
     }).format(dayDate);
     const row = document.createElement("div");
     row.className = "day-row";
-    const summary = document.createElement("button");
+    const summary = document.createElement("div");
     summary.className = "day-summary";
-    summary.type = "button";
-    summary.setAttribute("aria-expanded", "false");
     summary.innerHTML =
       `<span class="day-name"><strong>${label}</strong><small>${dateLabel}</small></span>` +
       `${buildIcon(data.daily.weather_code[i], 1)}<span class="day-temperatures">${Math.round(
@@ -368,7 +366,6 @@ function render(root, data, config, meta) {
 
     const details = document.createElement("div");
     details.className = "day-details";
-    details.hidden = true;
     const rainChance = data.daily.precipitation_probability_max?.[i];
     const rainTotal = data.daily.precipitation_sum?.[i];
     const windMax = data.daily.wind_speed_10m_max?.[i];
@@ -394,11 +391,6 @@ function render(root, data, config, meta) {
         },
       ).format(providerDate(data.daily.sunset[i], config.timezone))}</span>`;
 
-    summary.addEventListener("click", () => {
-      const expanded = !summary.matches("[aria-expanded='true']");
-      summary.setAttribute("aria-expanded", String(expanded));
-      details.hidden = !expanded;
-    });
     row.append(summary, details);
     days.appendChild(row);
   }

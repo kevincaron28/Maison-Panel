@@ -1,4 +1,5 @@
 export { CameraRelay } from "./camera-relay.js";
+import { morningMarkets } from "./morning-markets.js";
 const encoder = new TextEncoder();
 const SESSION = "__Host-maison-session";
 const STATE = "__Host-maison-oauth";
@@ -162,6 +163,7 @@ export function mergeReminders(existing, incoming) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/morning-markets") return morningMarkets(request);
     if (!url.pathname.startsWith("/api/")) {
       if (url.pathname === "/") {
         url.pathname = "/index.html";

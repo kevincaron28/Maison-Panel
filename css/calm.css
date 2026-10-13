@@ -996,3 +996,20 @@ button:disabled,input:disabled { opacity: .45; cursor: default; }
   .weather-summary .hero-temp { font-size:88px; margin:6px 0; }
   .weather-summary::before { height:110px; }
 }
+
+/* The seven-day forecast is a complete overview, with no collapsed dates. */
+.forecast-dialog { width:min(1180px,calc(100vw - 32px)); }
+.forecast-dialog > .section-heading { margin-bottom:12px; }
+.forecast-dialog .day-row { display:grid; grid-template-columns:260px minmax(0,1fr); align-items:center; gap:18px; padding:10px 0; border-bottom:1px solid var(--line); }
+.forecast-dialog .day-row:last-child { border-bottom:0; }
+.forecast-dialog .day-summary { min-height:48px; padding:0; cursor:default; }
+.forecast-dialog .day-details { display:grid; grid-template-columns:1.1fr 1fr 1.2fr; gap:12px; margin:0; padding:0; font-size:18px; line-height:1.4; }
+.forecast-dialog .day-name strong { font-size:20px; }
+.forecast-dialog .day-name small { font-size:16px; }
+.forecast-dialog .day-temperatures { font-size:22px; white-space:nowrap; }
+@media(max-width:850px) {
+  .forecast-dialog .day-row { grid-template-columns:1fr; gap:8px; padding:14px 0; }
+  .forecast-dialog .day-summary { justify-content:flex-start; gap:24px; }
+  .forecast-dialog .day-details { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .forecast-dialog .day-details > :last-child { grid-column:1/-1; }
+}

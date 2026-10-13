@@ -97,7 +97,7 @@ test("a weather module load failure leaves the clock, calendar and navigation in
     const stub=async exports=>{const m=new vm.SyntheticModule(Object.keys(exports),function(){for(const [k,v] of Object.entries(exports))this.setExport(k,v);},{context});await m.link(()=>{});await m.evaluate();return m;};
     const main=new vm.SourceTextModule(await readFile('js/app.js','utf8'),{context,importModuleDynamically:async path=>{
       if(path==='./weather.js')throw Error('fixture missing weather module');
-      const names={'./alerts.js':'initAlerts','./dashboard.js':'initDashboard','./clock.js':'initClock','./solunar.js':'initFishingIndicator','./calendar.js':'initCalendar','./spotify.js':'initSpotify','./appearance.js':'initAppearance','./lifecycle.js':'initLifecycle'};
+      const names={'./morning.js':'initMorning','./alerts.js':'initAlerts','./dashboard.js':'initDashboard','./clock.js':'initClock','./solunar.js':'initFishingIndicator','./calendar.js':'initCalendar','./spotify.js':'initSpotify','./appearance.js':'initAppearance','./lifecycle.js':'initLifecycle'};
       return stub({[names[path]]:()=>initialized.push(path)});
     }});
     await main.link(path=>stub(path.includes('config')?{CONFIG:{camera:{feeds:[]}}}:{createDailyReloadCheck:()=>()=>{}}));await main.evaluate();
