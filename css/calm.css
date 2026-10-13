@@ -192,12 +192,6 @@ h2 {
   margin: 6px 0;
   color: var(--ink-high);
 }
-.hero-temp svg {
-  height: 64px;
-  width: 64px;
-  margin-right: 18px;
-  color: var(--tide);
-}
 .hero-sub {
   font-size: 18px;
   color: var(--ink-mid);
@@ -967,4 +961,17 @@ button:disabled,input:disabled { opacity: .45; cursor: default; }
   .camera-heading h2 { font-size:24px; }
   #camera-dialog { padding:18px; }
   .camera-feed-caption { align-items:flex-start; flex-direction:column; }
+}
+
+/* One illustration, one large reading; the condition remains explicit in text. */
+.weather-summary .hero-temp { font-size:104px; font-weight:500; line-height:1; letter-spacing:-5px; margin:10px 0; max-width:64%; }
+.weather-summary .hero-sub { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; }
+.hero-condition { color:var(--ink-high); font-size:26px; line-height:1.2; }
+.hero-condition::first-letter { text-transform:uppercase; }
+.hero-feels { color:var(--ink-mid); font-size:18px; white-space:nowrap; }
+.weather-summary::before { top:32px; right:16px; width:34%; height:130px; }
+@media(max-width:450px) {
+  .weather-summary .hero-temp { font-size:88px; }
+  .hero-condition { font-size:24px; }
+  .weather-summary::before { right:8px; width:32%; }
 }

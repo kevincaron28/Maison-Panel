@@ -313,11 +313,14 @@ function render(root, data, config, meta) {
   const isFr = config.locale?.startsWith("fr");
   renderTodayStrip(document, data, config);
 
-  root.querySelector(".hero-temp").innerHTML =
-    `${buildIcon(c.weather_code, c.is_day)} ${Math.round(c.temperature_2m)}°`;
-
-  root.querySelector(".hero-sub").textContent =
-    `${weatherLabel(c.weather_code, config.locale)} · ${isFr ? "ressenti" : "feels"} ${Math.round(c.apparent_temperature)}°`;
+  root.querySelector(".hero-temp").textContent = `${Math.round(c.temperature_2m)}°`;
+  const condition = document.createElement("span");
+  condition.className = "hero-condition";
+  condition.textContent = weatherLabel(c.weather_code, config.locale);
+  const feels = document.createElement("span");
+  feels.className = "hero-feels";
+  feels.textContent = `${isFr ? "Ressenti" : "Feels like"} ${Math.round(c.apparent_temperature)}°`;
+  root.querySelector(".hero-sub").replaceChildren(condition, feels);
 
   const hourly = root.querySelector(".hourly-strip");
   hourly.innerHTML = "";
