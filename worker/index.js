@@ -1,4 +1,5 @@
 export { CameraRelay } from "./camera-relay.js";
+export { DeckRelay } from "./deck-relay.js";
 import { morningMarkets } from "./morning-markets.js";
 const encoder = new TextEncoder();
 const SESSION = "__Host-maison-session";
@@ -178,6 +179,11 @@ export default {
         return json({ error: "unauthorized" }, 401);
       return env.CAMERA_RELAY.getByName("home").fetch(request);
     }
+    if (["/api/deck/publisher", "/api/deck/enroll"].includes(url.pathname)) {
+      if (url.origin !== env.APP_ORIGIN || !env.DECK_RELAY)
+        return json({error:"deck_unavailable"},503);
+      return env.DECK_RELAY.getByName("studio").fetch(request);
+    }
     if (
       !env.PRIVATE_DATA ||
       !env.GOOGLE_CLIENT_ID ||
@@ -296,6 +302,10 @@ export default {
       }
       const user = await session(request, env);
       if (!user) return json({ error: "sign_in_required" }, 401);
+      if (["/api/deck/state", "/api/deck/action", "/api/deck/mapping", "/api/deck/pair", "/api/deck/revoke"].includes(url.pathname)) {
+        if (!env.DECK_RELAY) return json({error:"deck_unavailable"},503);
+        return env.DECK_RELAY.getByName("studio").fetch(request);
+      }
       if (url.pathname === "/api/camera/control" && request.method === "POST") {
         if (!env.CAMERA_RELAY) return json({ error: "camera_unavailable" }, 503);
         if (Number(request.headers.get("Content-Length")) > 128) return json({error:"invalid_control"},400);

@@ -16,6 +16,7 @@ export function initLifecycle(config) {
     if (
       !document.body.dataset.page ||
       document.body.dataset.page === "settings" ||
+      document.body.dataset.page === "deck" ||
       document.hidden
     )
       return;

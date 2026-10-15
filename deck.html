@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deck · Maison</title>
+<link rel="stylesheet" href="css/calm.css"><link rel="stylesheet" href="css/details.css"><link rel="stylesheet" href="css/deck.css">
+</head>
+<body class="detail-page" data-page="deck">
+<div id="panel">
+<nav class="home-nav" aria-label="Navigation principale"><a class="wordmark" href="./">maison.</a><div><a href="./">Accueil</a><a href="fishing.html">Pêche</a><a href="markets.html">Marchés</a><a href="deck.html" aria-current="page">Deck</a><a href="settings.html">Réglages</a></div></nav>
+<header class="page-heading deck-heading"><div><h1>Votre studio, à portée de main.</h1><p id="deck-status" role="status">Connexion au PC…</p></div><button id="deck-settings" type="button" aria-expanded="false" aria-controls="deck-setup">Configuration</button></header>
+<main>
+<p id="deck-login" hidden>Connectez-vous au compte Maison dans <a href="settings.html">Réglages</a> pour accéder au deck privé.</p>
+<div id="deck-grid" class="studio-grid" aria-label="Commandes LIVE Studio">
+<button class="studio-key" data-button="starting" disabled><span class="deck-number">01</span><strong>Début</strong><span class="deck-key-state">Scène à relier</span></button>
+<button class="studio-key" data-button="gaming" disabled><span class="deck-number">02</span><strong>Jeu principal</strong><span class="deck-key-state">Scène à relier</span></button>
+<button class="studio-key" data-button="brb" disabled><span class="deck-number">03</span><strong>Pause · BRB</strong><span class="deck-key-state">Scène à relier</span></button>
+<button class="studio-key" data-button="ending" disabled><span class="deck-number">04</span><strong>Fin</strong><span class="deck-key-state">Scène à relier</span></button>
+<button class="studio-key audio-key" data-button="mic" disabled><span class="deck-number" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg></span><strong>Microphone</strong><span class="deck-key-state">État inconnu</span></button>
+<button class="studio-key audio-key" data-button="audio" disabled><span class="deck-number" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14"/></svg></span><strong>Son du PC</strong><span class="deck-key-state">État inconnu</span></button>
+</div>
+<p id="deck-feedback" role="status" aria-live="polite">Les états viennent de LIVE Studio. « Fin » change de scène sans arrêter le direct.</p>
+<section id="deck-setup" class="detail-card" hidden>
+<h2>Une seule configuration par PC</h2>
+<ol><li>Ouvrez Lantern Deck 2.0 et LIVE Studio sur le PC à contrôler.</li><li>Cliquez sur « Connecter un PC » ci-dessous, puis entrez le code dans Lantern Deck.</li><li>Sur le PC, cochez « Allow Maison to control scenes and audio ».</li><li>Choisissez les quatre scènes ci-dessous. Le micro et le son du PC sont reliés automatiquement.</li></ol>
+<p>Aucun raccourci clavier à créer. Pour le test sur le PC de Kevin, utilisez seulement les deux boutons audio. Sur le PC de votre conjointe, refaites la connexion et choisissez ses scènes.</p>
+<div class="deck-setup-actions"><button id="deck-pair" type="button">Connecter un PC</button><button id="deck-revoke" type="button">Déconnecter le PC</button></div>
+<p id="deck-pair-code" role="status"></p>
+<form id="deck-mapping"><div class="deck-selects"><label>Début<select name="starting"><option value="">Choisir une scène</option></select></label><label>Jeu principal<select name="gaming"><option value="">Choisir une scène</option></select></label><label>Pause · BRB<select name="brb"><option value="">Choisir une scène</option></select></label><label>Fin<select name="ending"><option value="">Choisir une scène</option></select></label></div><button id="deck-save" type="submit" disabled>Enregistrer les scènes</button></form>
+<p>La connexion utilise Internet et le relais privé Maison. Le PC doit rester allumé. Après chaque lancement de Lantern Deck, autorisez de nouveau le contrôle. Testez hors direct avant la première utilisation.</p>
+</section>
+</main><footer class="detail-footer"><a href="./">Retour à la maison</a><span>Lantern Deck · intégration indépendante</span></footer>
+</div>
+<script type="module" src="js/deck.js"></script>
+</body></html>

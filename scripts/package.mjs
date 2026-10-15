@@ -14,7 +14,7 @@ for (const name of await readdir(output)) {
   await rm(target, { recursive: true, force: true, maxRetries: 3 });
 }
 // Only public runtime assets; never repository history, docs, tests or development dependencies.
-for (const file of ["index.html", "markets.html", "fishing.html", "settings.html", "privacy.html", "config.js", "_headers"])
+for (const file of ["index.html", "markets.html", "fishing.html", "settings.html", "deck.html", "privacy.html", "config.js", "_headers"])
   await cp(path.join(root, file), path.join(output, file));
 for (const dir of ["css", "js", "vendor", "fonts"]) {
   await mkdir(path.join(output, dir));
@@ -25,7 +25,7 @@ for (const dir of ["css", "js", "vendor", "fonts"]) {
 }
 console.log("Packaged public assets in dist/");
 
-const assets=["/","/index.html","/markets.html","/fishing.html","/settings.html","/privacy.html","/config.js"];
+const assets=["/","/index.html","/markets.html","/fishing.html","/settings.html","/deck.html","/privacy.html","/config.js"];
 for(const dir of ["css","js","vendor","fonts"])for(const file of await readdir(path.join(output,dir)))if(/\.(js|css|woff2)$/.test(file)&&file!=="release.js")assets.push(`/${dir}/${file}`);
 const template=await readFile(path.join(root,"scripts/sw-template.js"),"utf8");
 const hash=createHash("sha256");for(const asset of assets.filter(p=>p!=="/"))hash.update(await readFile(path.join(output,asset.slice(1))));

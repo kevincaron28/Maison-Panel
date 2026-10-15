@@ -12,6 +12,14 @@ class_name = "CameraRelay"
 tag = "camera-v1"
 new_sqlite_classes = ["CameraRelay"]
 
+[[durable_objects.bindings]]
+name = "DECK_RELAY"
+class_name = "DeckRelay"
+
+[[migrations]]
+tag = "deck-v1"
+new_sqlite_classes = ["DeckRelay"]
+
 [vars]
 APP_ORIGIN = "https://maison-panel.kcaron.workers.dev"
 ALLOWED_EMAIL = "kevincaron28@gmail.com"

@@ -101,3 +101,10 @@ Before release: `npm ci`, `npm test`, `npm run check:calendar`, `npm run package
 
 See [the audit and upgrade plan](docs/system-audit.md) for confirmed findings, remaining account
 and tablet checks, and rollout steps. Local fixes are not deployed until their branch is released.
+
+## Deck
+The new Deck tab controls a paired Windows LIVE Studio companion. Configure it
+once from Deck > Configuration; select real scenes from the PC and use the two
+audio buttons without keyboard shortcuts. See [Deck setup](docs/deck-integration.md).
+This is an independent, version-sensitive integration, not TikTok's official
+plugin. Internet and the existing signed-in Maison owner session are required.
