@@ -12,14 +12,7 @@
 <main>
 <p id="deck-login" hidden>Connectez-vous au compte Maison dans <a href="settings.html">Réglages</a> pour accéder au deck privé.</p>
 <div class="deck-strip"><span id="pill-studio" class="deck-pill">Connexion…</span><span id="pill-control" class="deck-pill" hidden></span><span id="pill-live" class="deck-pill live" hidden>EN DIRECT</span></div>
-<div id="deck-grid" class="studio-grid" aria-label="Commandes LIVE Studio">
-<button class="studio-key key-starting" data-button="starting" disabled><span class="key-badge" hidden></span><span class="key-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 4h18v13H3z M8 21h8 M12 17v4 M9 8l6 3-6 3z"/></svg></span><strong>Début</strong><span class="deck-key-state">Scène à relier</span></button>
-<button class="studio-key key-gaming" data-button="gaming" disabled><span class="key-badge" hidden></span><span class="key-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h12v12H3z M15 10l6-4v12l-6-4"/></svg></span><strong>Jeu principal</strong><span class="deck-key-state">Scène à relier</span></button>
-<button class="studio-key key-brb" data-button="brb" disabled><span class="key-badge" hidden></span><span class="key-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4v7H4 M4 10a8 8 0 1 1 1 8 M12 8v5l3 2"/></svg></span><strong>Pause · BRB</strong><span class="deck-key-state">Scène à relier</span></button>
-<button class="studio-key key-ending" data-button="ending" disabled><span class="key-badge" hidden></span><span class="key-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 21V4 M5 4h11l-2 4 2 4H5"/></svg></span><strong>Fin</strong><span class="deck-key-state">Scène à relier</span></button>
-<button class="studio-key audio-key key-mic" data-button="mic" disabled><span class="key-badge" hidden></span><span class="key-emoji" aria-hidden="true" hidden>🔇</span><span class="key-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0z M5 10v2a7 7 0 0 0 14 0v-2 M12 19v3 M8 22h8"/><path class="mute-slash" d="M4 3l16 18"/></svg></span><strong>Microphone</strong><span class="deck-key-state">État inconnu</span></button>
-<button class="studio-key audio-key key-audio" data-button="audio" disabled><span class="key-badge" hidden></span><span class="key-emoji" aria-hidden="true" hidden>🔇</span><span class="key-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/><path class="mute-slash" d="M3 3l18 18"/></svg></span><strong>Son du PC</strong><span class="deck-key-state">État inconnu</span></button>
-</div>
+<div id="deck-grid" class="studio-grid" aria-label="Commandes LIVE Studio"></div>
 <p id="deck-feedback" role="status" aria-live="polite">Les états viennent de LIVE Studio. « Fin » change de scène sans arrêter le direct.</p>
 <div class="deck-last"><span class="deck-last-title">DERNIÈRE ACTION</span><span id="deck-last">Aucune action pour l’instant</span><time id="deck-last-time"></time></div>
 <section id="deck-setup" class="detail-card" hidden>
@@ -28,6 +21,7 @@
 <p>Aucun raccourci clavier à créer. Le contrôle en direct redémarre DÉSACTIVÉ à chaque lancement de Lantern Deck, sauf si vous activez « Retenir le contrôle en direct après un redémarrage » dans ses Paramètres. Jumeler un autre PC déconnecte l’ancien.</p>
 <div class="deck-setup-actions"><button id="deck-pair" type="button">Connecter un PC</button><button id="deck-revoke" type="button">Déconnecter le PC</button></div>
 <p id="deck-pair-code" role="status"></p>
+<p id="deck-mode-note" class="deck-mode-note" hidden>Ce deck suit les boutons configurés dans Lantern Deck sur le PC (centre de contrôle › Modifier les boutons), y compris les boutons à plusieurs étapes. Les scènes ci-dessous ne servent qu’aux anciennes versions.</p>
 <form id="deck-mapping"><div class="deck-selects"><label>Début<select name="starting"><option value="">Choisir une scène</option></select></label><label>Jeu principal<select name="gaming"><option value="">Choisir une scène</option></select></label><label>Pause · BRB<select name="brb"><option value="">Choisir une scène</option></select></label><label>Fin<select name="ending"><option value="">Choisir une scène</option></select></label></div><button id="deck-save" type="submit" disabled>Enregistrer les scènes</button></form>
 <p>La connexion utilise Internet et le relais privé Maison. Le PC doit rester allumé. Testez hors direct avant la première utilisation (bouton « Run studio test » de Lantern Deck).</p>
 </section>

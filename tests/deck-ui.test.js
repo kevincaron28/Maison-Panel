@@ -93,3 +93,46 @@ test('LIVE pill shows a running timer while broadcasting',async t=>{
  dom.window.localStorage.setItem('maison-deck:live-since',String(Date.now()-3725000));await flush();
  assert.match(dom.window.document.getElementById('pill-live').textContent,/EN DIRECT · 1:02:0[56]/);
 });
+
+test('Lantern deck mode builds tiles from the PC, shows macro state and confirms while LIVE',async t=>{
+ const deck=[{id:'gaming',label:'Main gaming',icon:'02',color:'#4dd9b1',confirm:false,action:{kind:'scene',scene:'Main'}},
+  {id:'brbmute',label:'BRB + mute',icon:'03',color:'#d3acff',confirm:false,action:{kind:'macro',steps:[{kind:'scene',scene:'BRB'},{kind:'mic',muted:true}]}},
+  {id:'microphone',label:'Microphone',icon:'♫',color:'#f4b66c',confirm:false,action:{kind:'mic'}},
+  {id:'hk',label:'Overlay',icon:'✦',color:'#7dd4e8',confirm:false,action:{kind:'hotkey'}}];
+ const state=baseState();state.deck=deck;state.state.stream_status=1;state.state.scene='BRB';
+ const actions=[];let rev=0;
+ const dom=deckDom(t,async(url,options)=>{
+  if(url.endsWith('/action')){const body=JSON.parse(options.body);actions.push(body);
+   if(!body.confirmed)return{ok:false,status:409,json:async()=>({error:'action_unconfirmed',reason:'confirm_live'})};
+   return ok({ok:true,result:{code:'done'}});}
+  return ok({...state,revision:'r'+(++rev)});});
+ const asked=[];dom.window.confirm=q=>{asked.push(q);return true;};
+ await flush();const d=dom.window.document;
+ assert.deepEqual([...d.querySelectorAll('#deck-grid [data-button]')].map(k=>k.dataset.button),['gaming','brbmute','microphone','hk']);
+ assert.equal(d.querySelector('[data-button=starting]'),null,'the classic six are replaced');
+ const brb=d.querySelector('[data-button=brbmute]');
+ assert.equal(brb.querySelector('.key-badge').textContent,'EN PLACE','macro lit when BRB is on screen and the mic is muted');
+ assert.match(brb.textContent,/2 étapes/);
+ assert.equal(d.getElementById('deck-mapping').hidden,true);assert.equal(d.getElementById('deck-mode-note').hidden,false);
+ d.querySelector('[data-button=microphone]').click();await flush();await flush();
+ assert.deepEqual(actions[0],{press:'microphone',revision:'r1',confirmed:false,target:false});
+ assert.equal(asked.length,1,'LIVE confirmation asked once');assert.match(asked[0],/EN DIRECT/);
+ await flush();await flush();
+ assert.equal(actions.length,2);assert.equal(actions[1].confirmed,true);assert.equal(actions[1].press,'microphone');
+ assert.match(d.getElementById('deck-last').textContent,/Fait : Microphone/);
+});
+
+test('the wall tablet applies a ready update by itself after a minute without touches',async()=>{
+ const vm=await import('node:vm');
+ const source=fs.readFileSync(new URL('../js/lifecycle.js',import.meta.url),'utf8').replace(/^import .*;$/gm,'').replaceAll('export function','function');
+ let time=0,clicked=0;const intervals=[];
+ const reg={waiting:{postMessage(){}},addEventListener(){},update:()=>Promise.resolve()};
+ const button={click:()=>clicked++};
+ const context={Date:{now:()=>time},localStorage:{getItem:()=>5},setInterval:fn=>intervals.push(fn),
+  document:{body:{dataset:{page:'deck'},append(){}},hidden:false,activeElement:null,querySelector:()=>null,addEventListener(){},getElementById:()=>button,createElement:()=>button},
+  location:{assign(){},reload(){}},window:{addEventListener(){}},navigator:{serviceWorker:{register:()=>Promise.resolve(reg),addEventListener(){}}},syncReminders:()=>Promise.resolve()};
+ vm.createContext(context);vm.runInContext(source+'\ninitLifecycle({});',context);await new Promise(r=>setImmediate(r));
+ const autoApply=intervals[intervals.length-2];
+ time=30000;autoApply();assert.equal(clicked,0,'not while someone just touched the panel');
+ time=61000;autoApply();assert.equal(clicked,1);
+});

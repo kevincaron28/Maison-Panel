@@ -60,7 +60,18 @@ export function initLifecycle(config) {
         reg.addEventListener("updatefound", () =>
           reg.installing?.addEventListener("statechange", announce),
         );
-        setInterval(() => reg.update().catch(() => {}), 3600000);
+        // A wall tablet has nobody to tap "appliquer": apply a ready update after a minute
+        // without touches, never while a dialog is open or a field has focus.
+        setInterval(() => {
+          if (
+            reg.waiting &&
+            Date.now() - last > 60000 &&
+            !document.querySelector("dialog[open],.music-dialog:not([hidden])") &&
+            !document.activeElement?.matches("input,textarea,select")
+          )
+            document.getElementById("apply-update")?.click();
+        }, 15000);
+        setInterval(() => reg.update().catch(() => {}), 900000);
       })
       .catch(() => {});
 }

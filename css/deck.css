@@ -32,6 +32,8 @@
 }
 .studio-key strong { font-size: 24px; line-height: 1.2; }
 .key-icon { display: flex; color: var(--accent); }
+.key-icon.text-icon { font-size: 40px; line-height: 44px; height: 44px; }
+.deck-mode-note { background: color-mix(in srgb, #6fd0a8 10%, var(--ground-raised)); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .key-icon svg { width: 44px; height: 44px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .mute-slash { display: none; }
 .deck-key-state { font-size: 17px; color: var(--ink-mid); overflow-wrap: anywhere; }

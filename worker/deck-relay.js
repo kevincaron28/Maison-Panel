@@ -4,10 +4,35 @@ const hash = async value => [...new Uint8Array(await crypto.subtle.digest('SHA-2
 const secret = () => Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
 const slots = ['starting','gaming','brb','ending'];
 
+const code = v => typeof v === 'string' && /^[a-z_]{1,40}$/.test(v) ? v : undefined;
+const text = (v, max) => typeof v === 'string' && v.length <= max ? v : null;
+
+// Lantern Deck 3 publishes its configured buttons; only well-formed ones are passed to the panel.
+export function cleanButton(b) {
+  if (!b || typeof b !== 'object' || typeof b.id !== 'string' || !/^[A-Za-z0-9_-]{1,40}$/.test(b.id)) return null;
+  const label = text(b.label, 40), icon = text(b.icon, 12), a = b.action;
+  if (!label || icon === null || typeof b.color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(b.color) || !a || typeof a !== 'object') return null;
+  let action;
+  if (a.kind === 'scene') { const scene = text(a.scene, 200); if (scene === null) return null; action = {kind:'scene', scene}; }
+  else if (['mic','audio','hotkey'].includes(a.kind)) action = {kind:a.kind};
+  else if (a.kind === 'macro' && Array.isArray(a.steps) && a.steps.length >= 1 && a.steps.length <= 8) {
+    const steps = [];
+    for (const step of a.steps) {
+      if (step?.kind === 'scene' && text(step.scene, 200)) steps.push({kind:'scene', scene:step.scene});
+      else if (['mic','audio'].includes(step?.kind) && typeof step.muted === 'boolean') steps.push({kind:step.kind, muted:step.muted});
+      else if (step?.kind === 'wait' && Number.isInteger(step.ms) && step.ms >= 0 && step.ms <= 10000) steps.push({kind:'wait', ms:step.ms});
+      else return null;
+    }
+    action = {kind:'macro', steps};
+  } else return null;
+  return {id:b.id, label, icon, color:b.color, action, confirm:b.confirm === true};
+}
+
 export function cleanSnapshot(value) {
   if (!value || typeof value !== 'object') throw new Error('invalid_state');
   const base = {connected:value.connected === true, enabled:value.enabled === true,
     computer:typeof value.computer === 'string' ? value.computer.slice(0,80) : 'PC studio', state:null};
+  if (Array.isArray(value.deck)) base.deck = value.deck.slice(0, 32).map(cleanButton).filter(Boolean);
   if (!base.connected) return base;
   const s = value.state;
   if (!s || typeof s.mic_mute !== 'boolean' || typeof s.audio_mute !== 'boolean' ||
@@ -21,6 +46,14 @@ export function cleanSnapshot(value) {
 
 export function deckCommand(body, mapping, snapshot) {
   if (!snapshot?.connected || !snapshot.enabled) throw new Error('studio_not_ready');
+  if (typeof body?.press === 'string') {
+    // Lantern Deck 3 button: the PC runs its own saved definition; only the id travels.
+    const button = snapshot.deck?.find(b => b.id === body.press);
+    if (!button) throw new Error('invalid_action');
+    const command = {action:'press', button:button.id, confirmed:body.confirmed === true};
+    if (typeof body.target === 'boolean') command.target = body.target;
+    return command;
+  }
   if (slots.includes(body?.button)) {
     const scene = mapping[body.button];
     if (!snapshot.state.scenes.includes(scene)) throw new Error('scene_not_linked');
@@ -110,22 +143,22 @@ export class DeckRelay {
       try {
         const command=deckCommand(body,await this.ctx.storage.get('mapping') || {},this.last);
         this.revision=null; // A displayed state can authorize only one command.
-        const result=await this.ask({type:'action',command,expires:Date.now()+5000});
+        // Multi-step buttons may take several seconds on the PC.
+        const result=await this.ask({type:'action',command,expires:Date.now()+5000},command.action==='press'?30000:12000);
         this.last=null;
-        if(result.ok===true) return json({ok:true});
+        if(result.ok===true) return json({ok:true,result:{code:code(result.result?.code)}});
         // Lantern Deck 3 adds a specific `reason`; only a short code is forwarded, never free text.
-        const reason=typeof result.reason==='string' && /^[a-z_]{1,40}$/.test(result.reason) ? result.reason : undefined;
-        return json({error:typeof result.error==='string' && /^[a-z_]{1,40}$/.test(result.error) ? result.error : 'action_unconfirmed', reason},409);
+        return json({error:code(result.error) || 'action_unconfirmed', reason:code(result.reason)},409);
       } catch { this.last=null; return json({error:'action_unconfirmed'},409); }
       finally { this.busy=false; }
     }
     return json({error:'not_found'},404);
   }
-  ask(message) {
+  ask(message, timeout=12000) {
     const socket=this.socket(); if(!socket || this.pending.size>=4) return Promise.reject(Error('unavailable'));
     const id=crypto.randomUUID();
     return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('timeout'));},12000);
+      const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('timeout'));},timeout);
       this.pending.set(id,{socket,resolve,reject,timer});
       try { socket.send(JSON.stringify({...message,id})); }
       catch {clearTimeout(timer);this.pending.delete(id);reject(Error('disconnected'));}

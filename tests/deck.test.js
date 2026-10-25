@@ -76,3 +76,33 @@ test('failed commands forward only a short Lantern reason code',async t=>{
   assert.deepEqual((await ask({ok:false,error:'<b>x</b>',reason:'Not A Code!'})).body,{error:'action_unconfirmed'});
   relay.disconnect();
 });
+test('Lantern deck buttons are validated and only the button id travels',()=>{
+  const button={id:'brbmute',label:'BRB + mute',icon:'03',color:'#d3acff',confirm:false,action:{kind:'macro',steps:[{kind:'scene',scene:'BRB'},{kind:'mic',muted:true},{kind:'wait',ms:500}]},shortcut:'CTRL+X'};
+  const bad=[{...button,id:'../x'},{...button,color:'red'},{...button,label:'x'.repeat(41)},{...button,action:{kind:'shell'}},
+    {...button,action:{kind:'macro',steps:[{kind:'hotkey',shortcut:'Alt+F4'}]}},{...button,action:{kind:'macro',steps:[]}}];
+  const clean=cleanSnapshot({...snapshot,deck:[button,...bad,{id:'mic1',label:'Micro',icon:'♫',color:'#f4b66c',action:{kind:'mic'}}]});
+  assert.deepEqual(clean.deck.map(b=>b.id),['brbmute','mic1']);
+  assert.equal(clean.deck[0].shortcut,undefined,'extra fields are dropped');
+  assert.equal(cleanSnapshot({connected:false,deck:[button]}).deck.length,1,'deck stays visible while the studio is offline');
+  assert.deepEqual(deckCommand({press:'brbmute',confirmed:true,target:'x'},{},clean),{action:'press',button:'brbmute',confirmed:true});
+  assert.deepEqual(deckCommand({press:'mic1',target:false},{},clean),{action:'press',button:'mic1',confirmed:false,target:false});
+  assert.throws(()=>deckCommand({press:'unknown'},{},clean));
+  assert.throws(()=>deckCommand({press:'mic1'},{},{...clean,enabled:false}));
+});
+test('button presses wait longer and return a short result code',async t=>{
+  const {relay,sockets,records}=setup(t);let message;
+  const socket={readyState:1,send(raw){message=JSON.parse(raw);},close(){this.readyState=3;}};sockets.push(socket);records.set('mapping',{});
+  const timeouts=[];const realTimeout=globalThis.setTimeout;
+  globalThis.setTimeout=(fn,ms)=>{timeouts.push(ms);return realTimeout(fn,ms);};
+  t.after(()=>{globalThis.setTimeout=realTimeout;});
+  const deck=[{id:'brbmute',label:'BRB + mute',icon:'03',color:'#d3acff',action:{kind:'mic'}}];
+  const pending=relay.fetch(req('state'));await new Promise(r=>setImmediate(r));
+  relay.webSocketMessage(socket,JSON.stringify({id:message.id,snapshot:{...snapshot,deck}}));
+  const state=await (await pending).json();assert.equal(state.deck[0].id,'brbmute');
+  const action=relay.fetch(req('action',{press:'brbmute',revision:state.revision}));await new Promise(r=>setImmediate(r));
+  assert.deepEqual(message.command,{action:'press',button:'brbmute',confirmed:false});
+  assert.equal(timeouts.at(-1),30000);
+  relay.webSocketMessage(socket,JSON.stringify({id:message.id,ok:true,result:{code:'done',message:'free text'}}));
+  assert.deepEqual(await (await action).json(),{ok:true,result:{code:'done'}});
+  relay.disconnect();
+});
