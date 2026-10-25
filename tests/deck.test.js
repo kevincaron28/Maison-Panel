@@ -59,3 +59,20 @@ test('deck viewer routes require owner session and same-origin mutations',async(
   assert.equal((await worker.fetch(new Request('https://panel.test/api/deck/action',{method:'POST',headers,body:'{}'}),env)).status,403);
   headers.Origin='https://panel.test';assert.equal((await worker.fetch(new Request('https://panel.test/api/deck/action',{method:'POST',headers,body:'{}'}),env)).status,200);assert.equal(forwarded,1);
 });
+test('failed commands forward only a short Lantern reason code',async t=>{
+  const {relay,sockets,records}=setup(t);let message;
+  const socket={readyState:1,send(raw){message=JSON.parse(raw);},close(){this.readyState=3;}};sockets.push(socket);
+  records.set('mapping',{});
+  const ask=async(reply)=>{
+    const pending=relay.fetch(req('state'));await new Promise(r=>setImmediate(r));
+    relay.webSocketMessage(socket,JSON.stringify({id:message.id,snapshot}));
+    const {revision}=await (await pending).json();
+    const action=relay.fetch(req('action',{button:'mic',muted:true,revision}));await new Promise(r=>setImmediate(r));
+    relay.webSocketMessage(socket,JSON.stringify({id:message.id,...reply}));
+    const response=await action;return {status:response.status,body:await response.json()};
+  };
+  assert.deepEqual(await ask({ok:false,error:'action_unconfirmed',reason:'control_disabled',message:'Live control is OFF'}),
+    {status:409,body:{error:'action_unconfirmed',reason:'control_disabled'}});
+  assert.deepEqual((await ask({ok:false,error:'<b>x</b>',reason:'Not A Code!'})).body,{error:'action_unconfirmed'});
+  relay.disconnect();
+});

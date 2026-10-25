@@ -112,7 +112,10 @@ export class DeckRelay {
         this.revision=null; // A displayed state can authorize only one command.
         const result=await this.ask({type:'action',command,expires:Date.now()+5000});
         this.last=null;
-        return result.ok===true ? json({ok:true}) : json({error:result.error || 'action_unconfirmed'},409);
+        if(result.ok===true) return json({ok:true});
+        // Lantern Deck 3 adds a specific `reason`; only a short code is forwarded, never free text.
+        const reason=typeof result.reason==='string' && /^[a-z_]{1,40}$/.test(result.reason) ? result.reason : undefined;
+        return json({error:typeof result.error==='string' && /^[a-z_]{1,40}$/.test(result.error) ? result.error : 'action_unconfirmed', reason},409);
       } catch { this.last=null; return json({error:'action_unconfirmed'},409); }
       finally { this.busy=false; }
     }
