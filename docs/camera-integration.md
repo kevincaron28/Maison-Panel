@@ -1,5 +1,24 @@
 # HM203 camera integration
 
+## Reliability update (October 25, 2026)
+
+Supersedes the manual start and "auto-start unresolved" notes below.
+
+- **Install / update** from the repository: `node scripts/install-camera-bridge.mjs --mac 44:01:bb:ec:b3:13`.
+  It copies the bridge modules and `ws` to `%LOCALAPPDATA%\MaisonPanel\camera-bridge`, keeps the
+  private `config.json` (adding the camera MAC), registers a hidden start at Windows sign-in
+  (`HKCU\...\Run`, value "Maison Camera Bridge", no administrator rights) and starts it now.
+  Remove auto-start with `reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v "Maison Camera Bridge" /f`.
+- **Supervisor** (`camera-supervisor.mjs`) restarts the bridge after any exit, pausing 5 s up to 2 min.
+- **Bridge**: one instance per PC (local lock on 127.0.0.1:47821), log in `bridge.log` beside the config
+  (1 MB, camera credentials redacted), FFmpeg's last error line logged, status reported to the relay,
+  and automatic rediscovery of the camera by MAC when DHCP gives it a new address (config updated).
+- **Panel** shows the cause: "PC de la caméra hors ligne" (bridge not connected) or "Caméra injoignable"
+  (PC up, camera not answering). A dropped frame keeps the last picture up to 5 s with "Reconnexion…";
+  retries never wait more than 5 s.
+- **Still required**: the camera powered and on the home network, and the bridge PC awake. A DHCP
+  reservation for the camera on the router remains the best fix for address changes.
+
 ## Faster viewing update
 
 The bridge keeps one RTSP decoder open while viewing, decoding four JPEG frames per second. Each request waits for a newly decoded frame. The panel requests another frame 150 ms after the previous image loads; effective rate depends on network latency. This is a rapid JPEG feed, not full-motion video with audio. A LAN benchmark produced the first frame in 1.4 seconds, then new frames in 227–248 ms. Frames remain memory-only. The decoder stops after ten seconds without requests and on relay disconnect. Hidden/closed views stop polling; failures back off from three seconds. Copy `camera-stream.mjs` along with the other bridge modules when updating. This supersedes the per-image FFmpeg startup and five-second polling described below.
