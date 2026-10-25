@@ -177,7 +177,7 @@ test("cross-tab logout clears agenda immediately and ignores an in-flight respon
   instance.stop();
 });
 
-test("camera stops hidden polling and exponentially backs off failures", async (t) => {
+test("camera stops hidden polling and backs off failures, capped at 5 s", async (t) => {
   const dom = await page(t);
   let timer, delay;
   t.mock.method(globalThis, "setTimeout", (fn, ms) => {
@@ -210,14 +210,47 @@ test("camera stops hidden polling and exponentially backs off failures", async (
   document.dispatchEvent(new dom.window.Event("maison-camera-visibility"));
   assert.ok(img.src.startsWith("https://camera.test/snapshot"));
   img.dispatchEvent(new dom.window.Event("error"));
+  assert.equal(delay, 2000);
+  timer();
+  img.dispatchEvent(new dom.window.Event("error"));
   assert.equal(delay, 4000);
   timer();
   img.dispatchEvent(new dom.window.Event("error"));
-  assert.equal(delay, 8000);
+  assert.equal(delay, 5000, "never waits longer than 5 s, so the view returns quickly");
   img.dispatchEvent(new dom.window.Event("load"));
   assert.equal(delay, 2000);
   dialog.open = false;
   timer = undefined;
   document.dispatchEvent(new dom.window.Event("maison-camera-visibility"));
   assert.equal(timer, undefined);
+});
+
+test("private camera keeps the last frame through a hiccup, then names the cause", async (t) => {
+  const dom = await page(t);
+  let timer, now = 1_000_000, reply = "frame";
+  t.mock.method(globalThis, "setTimeout", (fn) => { timer = fn; return 1; });
+  t.mock.method(globalThis, "clearTimeout", () => {});
+  t.mock.method(Date, "now", () => now);
+  const { createObjectURL, revokeObjectURL } = URL;
+  URL.createObjectURL = () => "blob:frame"; URL.revokeObjectURL = () => {};
+  t.after(() => { URL.createObjectURL = createObjectURL; URL.revokeObjectURL = revokeObjectURL; });
+  t.mock.method(globalThis, "fetch", async () => reply === "frame"
+    ? new Response(new Uint8Array([255, 216, 255, 217]), { headers: { "Content-Type": "image/jpeg" } })
+    : Response.json({ error: reply }, { status: 503 }));
+  const root = document.getElementById("tile-cameras"), dialog = root.closest("dialog");
+  dialog.open = true;
+  initCamera({ ...CONFIG, camera: { feeds: [{ id: "home", name: "Maison", snapshotUrl: "/api/camera/snapshot", refreshMs: 150, private: true }] } }, root);
+  await flush(); await flush();
+  const card = root.querySelector(".camera-feed"), img = card.querySelector("img"), status = card.querySelector(".camera-feed-status");
+  assert.equal(img.getAttribute("src"), "blob:frame");
+  img.dispatchEvent(new dom.window.Event("load"));
+  reply = "pc_offline"; now += 1000; timer(); await flush(); await flush();
+  assert.equal(status.textContent, "Reconnexion…");
+  assert.equal(img.getAttribute("src"), "blob:frame", "last frame stays during a short hiccup");
+  assert.ok(card.classList.contains("is-stale"));
+  now += 6000; timer(); await flush(); await flush();
+  assert.equal(img.hasAttribute("src"), false, "an old frame is never shown as live for long");
+  assert.match(status.textContent, /PC de la caméra hors ligne/);
+  reply = "camera_unreachable"; timer(); await flush(); await flush();
+  assert.match(status.textContent, /Caméra injoignable/);
 });

@@ -18,7 +18,7 @@ export function jpegParser(onFrame) {
   };
 }
 
-export function createCameraStream(config) {
+export function createCameraStream(config, onError = () => {}) {
   let child = null, idleTimer = null;
   const waiting = new Set();
   function fail() { for (const waiter of waiting) { clearTimeout(waiter.timer); waiter.reject(new Error('capture_failed')); } waiting.clear(); }
@@ -29,8 +29,12 @@ export function createCameraStream(config) {
   }
   function start() {
     if (child) return;
-    const process = spawn(config.ffmpeg,['-hide_banner','-loglevel','error','-rtsp_transport','tcp','-timeout','7000000','-analyzeduration','100000','-probesize','100000','-i',config.rtsp,'-an','-vf','fps=4,scale=960:-2','-q:v','5','-f','image2pipe','pipe:1'],{windowsHide:true,stdio:['ignore','pipe','ignore']});
+    const process = spawn(config.ffmpeg,['-hide_banner','-loglevel','error','-rtsp_transport','tcp','-timeout','7000000','-analyzeduration','1000000','-probesize','500000','-i',config.rtsp,'-an','-vf','fps=4,scale=960:-2','-q:v','5','-f','image2pipe','pipe:1'],{windowsHide:true,stdio:['ignore','pipe','pipe']});
     child = process;
+    // Keep FFmpeg's last error words for the log (the caller redacts the camera URL).
+    let errors = '';
+    process.stderr.on('data', chunk => { errors = (errors + chunk).slice(-300); });
+    process.on('close', code => { if (code && errors.trim()) onError(errors.trim().split(/\r?\n/).at(-1)); });
     const parse = jpegParser(frame => {
       if (child !== process) return;
       for (const waiter of waiting) { clearTimeout(waiter.timer); waiter.resolve(frame); }

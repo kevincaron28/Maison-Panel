@@ -1,10 +1,11 @@
 const directions = {left:[-0.3,0],right:[0.3,0],up:[0,0.3],down:[0,-0.3]};
 export function createPtz(config) {
-  const endpoint = `http://${new URL(config.rtsp).hostname}/onvif/PTZ`;
+  // Read the host on every call: the bridge may have rediscovered the camera at a new address.
+  const endpoint = () => `http://${new URL(config.rtsp).hostname}/onvif/PTZ`;
   const token = 'Profile_1';
   let moving = false;
   async function soap(action, body) {
-    const response = await fetch(endpoint,{method:'POST',headers:{'Content-Type':`application/soap+xml; action="http://www.onvif.org/ver20/ptz/wsdl/${action}"`},body:`<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:tt="http://www.onvif.org/ver10/schema"><s:Body><${action} xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>${token}</ProfileToken>${body}</${action}></s:Body></s:Envelope>`,signal:AbortSignal.timeout(2000)});
+    const response = await fetch(endpoint(),{method:'POST',headers:{'Content-Type':`application/soap+xml; action="http://www.onvif.org/ver20/ptz/wsdl/${action}"`},body:`<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:tt="http://www.onvif.org/ver10/schema"><s:Body><${action} xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>${token}</ProfileToken>${body}</${action}></s:Body></s:Envelope>`,signal:AbortSignal.timeout(2000)});
     const xml = await response.text();
     if (!response.ok || !xml.includes(`${action}Response`) || /<(?:\w+:)?Fault[\s>]/.test(xml)) throw new Error('control_failed');
   }

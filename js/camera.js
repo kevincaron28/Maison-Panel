@@ -98,9 +98,23 @@ function initFeed(config, root, feed) {
     status.textContent = state === "offline" ? "Caméra indisponible" : `Image reçue à ${new Intl.DateTimeFormat(config.locale || "fr-CA", {hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:config.timezone || "America/Toronto"}).format(new Date())}`;
   }
 
-  let timer, failures=0, pending=null, objectUrl=null;
+  let timer, failures=0, pending=null, objectUrl=null, lastFrameAt=0;
+  // A dropped frame keeps the last picture for a few seconds instead of blanking the view;
+  // longer outages show the actual cause reported by the relay.
+  const STALE_MS=5000;
+  const causes={pc_offline:"PC de la caméra hors ligne · le pont caméra ne tourne pas.",camera_unreachable:"Caméra injoignable · vérifiez son alimentation et son câble réseau.",sign_in_required:"Connectez-vous dans Réglages pour voir la caméra."};
+  function failed(reason){
+    failures=Math.min(failures+1,5);
+    if(reason!=="sign_in_required" && lastFrameAt && Date.now()-lastFrameAt<STALE_MS){
+      card.classList.add("is-stale");status.hidden=false;status.textContent="Reconnexion…";schedule();return;
+    }
+    clearPrivate();setState("offline");
+    status.textContent=causes[reason]||"Caméra indisponible · nouvel essai automatique.";
+    schedule();
+  }
   const visible=()=>!document.hidden && !root.closest("[hidden]") && (!root.closest("dialog") || root.closest("dialog").open);
-  function schedule(){clearTimeout(timer);timer=setTimeout(tick,Math.min(60000,failures ? Math.max(1500,feed.refreshMs||config.refresh.camera)*2**failures : (feed.refreshMs||config.refresh.camera)));}
+  // Retries stay quick (max 5 s) so the view comes back soon after the PC or camera does.
+  function schedule(){clearTimeout(timer);const base=feed.refreshMs||config.refresh.camera;timer=setTimeout(tick,failures ? Math.min(5000,Math.max(1000,base)*2**(failures-1)) : base);}
   function clearPrivate() {
     pending?.abort(); pending=null;
     if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -118,11 +132,9 @@ function initFeed(config, root, feed) {
       try {
         const response=await fetch(url,{cache:"no-store",credentials:"same-origin",signal:controller.signal});
         if(!response.ok) {
-          const denied=response.status===401;
-          clearPrivate(); failures=Math.min(failures+1,5);
-          setState("offline");
-          status.textContent=denied?"Connectez-vous dans Réglages pour voir la caméra.":"Caméra indisponible · vérifiez le PC et le câble réseau.";
-          schedule(); return;
+          let reason=response.status===401?"sign_in_required":"";
+          try { reason=reason||(await response.json()).error||""; } catch { /* plain-text error */ }
+          failed(reason); return;
         }
         if(!response.headers.get("Content-Type")?.includes("image/jpeg")) throw new Error("Invalid image");
         const blob=await response.blob();
@@ -131,7 +143,7 @@ function initFeed(config, root, feed) {
         objectUrl=URL.createObjectURL(blob); url=objectUrl;
       } catch {
         if(controller.signal.aborted && !visible()) return;
-        clearPrivate(); failures=Math.min(failures+1,5); setState("offline"); schedule(); return;
+        failed(navigator.onLine===false?"offline":""); return;
       } finally { clearTimeout(timeout); if(pending===controller) pending=null; }
     }
     img.src = url;
@@ -140,7 +152,7 @@ function initFeed(config, root, feed) {
     }
   }
 
-  img.addEventListener("load", () => {failures=0;setState("live");schedule();});
+  img.addEventListener("load", () => {failures=0;lastFrameAt=Date.now();card.classList.remove("is-stale");setState("live");schedule();});
   img.addEventListener("error", () => {failures=Math.min(failures+1,5);setState("offline");schedule();});
 
   const visibility=()=>{clearTimeout(timer);if(!visible()){if(overlay?.dataset.feedId===feed.id)closeOverlay();if(feed.private)clearPrivate();}else tick();};

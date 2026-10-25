@@ -65,3 +65,28 @@ test('relay serializes motion and resolves only matching control acknowledgement
   assert.equal((await first).status,200);
   assert.equal(relay.controls.size,0);
 });
+
+test('relay tells the viewer why the camera is unavailable',async t=>{
+  const original=globalThis.WebSocketRequestResponsePair;
+  globalThis.WebSocketRequestResponsePair=class {};
+  t.after(()=>{globalThis.WebSocketRequestResponsePair=original;});
+  const reasonOf=async response=>{assert.equal(response.status,503);return (await response.json()).error;};
+  const request=new Request('https://panel.test/api/camera/snapshot');
+  const empty=new CameraRelay({setWebSocketAutoResponse(){},getWebSockets:()=>[]});
+  assert.equal(await reasonOf(await empty.fetch(request)),'pc_offline');
+  let command;
+  const socket={readyState:1,send:raw=>{command=JSON.parse(raw);}};
+  const relay=new CameraRelay({setWebSocketAutoResponse(){},getWebSockets:()=>[socket]});
+  let pending=relay.fetch(request);
+  relay.webSocketMessage(socket,JSON.stringify({id:command.id,error:'busy'}));
+  assert.equal(await reasonOf(await pending),'camera_busy');
+  assert.equal(relay.cameraState,'unknown','a busy bridge does not mean the camera is down');
+  pending=relay.fetch(request);
+  relay.webSocketMessage(socket,JSON.stringify({id:command.id,error:true}));
+  assert.equal(await reasonOf(await pending),'camera_unreachable');
+  relay.webSocketMessage(socket,JSON.stringify({type:'status',camera:'ok'}));
+  assert.equal(relay.cameraState,'ok');
+  pending=relay.fetch(request);
+  relay.webSocketClose(socket);
+  assert.equal(await reasonOf(await pending),'pc_offline');
+});
